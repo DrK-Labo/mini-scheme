@@ -1,0 +1,9 @@
+[package]
+name = "mini-scheme"
+version = "0.1.0"
+edition = "2024"
+description = "A minimal Scheme interpreter written in Rust"
+license = "MIT"
+
+[profile.release]
+opt-level = 3

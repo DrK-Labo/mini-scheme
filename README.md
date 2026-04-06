@@ -1,0 +1,76 @@
+# mini-scheme
+
+書籍『Rustで作るSchemeインタプリタ — ソフトウェアサイエンスの真髄を体験する』の実装コードです。
+
+## ファイル構成
+
+| ファイル | 説明 |
+|---|---|
+| [Cargo.toml](Cargo.toml) | Rustプロジェクト設定 |
+| [src/main.rs](src/main.rs) | 完成版インタプリタ（Chapter 5〜10 の全コードを統合） |
+| [mini-eval.scm](mini-eval.scm) | Schemeで書かれたSchemeインタプリタ — メタ循環評価器（Chapter 4） |
+
+### 章ごとのコードスナップショット
+
+各章の時点でのソースコードです。章を読み進めながら段階的にビルドできます。
+
+| ディレクトリ | 対応する章 | 内容 |
+|---|---|---|
+| [chapters/ch05/main.rs](chapters/ch05/main.rs) | Chapter 5: 字句解析 | トークナイザ（Lexer） |
+| [chapters/ch06/main.rs](chapters/ch06/main.rs) | Chapter 6: 構文解析 | パーサー（Parser）+ Lexer |
+| [chapters/ch07/main.rs](chapters/ch07/main.rs) | Chapter 7: 評価器 | Evaluator + 環境 + 特殊形式 |
+| [chapters/ch08/main.rs](chapters/ch08/main.rs) | Chapter 8: 関数とクロージャ | Lambda + レキシカルスコープ |
+| [chapters/ch09/main.rs](chapters/ch09/main.rs) | Chapter 9: 組み込み関数 | car/cdr/cons/算術/比較/型述語 |
+| [chapters/ch10/main.rs](chapters/ch10/main.rs) | Chapter 10: REPL | 対話的実行環境の完成 |
+
+### その他
+
+| ファイル | 説明 |
+|---|---|
+| [icon/](icon/) | DrK-Labo アイコン |
+
+## ビルドと実行
+
+```bash
+# ビルド
+cargo build
+
+# REPL を起動
+cargo run
+```
+
+```
+mini-scheme v0.1.0
+Type (exit) to quit.
+
+mini> (+ 1 2 3)
+6
+mini> (define (factorial n) (if (= n 0) 1 (* n (factorial (- n 1)))))
+factorial
+mini> (factorial 10)
+3628800
+mini> (exit)
+Bye!
+```
+
+## メタ循環評価器（Scheme版）の実行
+
+[Gauche](https://practical-scheme.net/gauche/) が必要です。
+
+```bash
+gosh mini-eval.scm
+```
+
+```scheme
+gosh> (my-repl)
+mini> (+ 1 2 3)
+6
+mini> (define (make-adder n) (lambda (x) (+ n x)))
+make-adder
+mini> ((make-adder 5) 100)
+105
+```
+
+## ライセンス
+
+MIT
