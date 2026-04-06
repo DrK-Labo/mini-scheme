@@ -789,6 +789,14 @@ fn is_balanced(input: &str) -> bool {
     depth == 0 && !in_string
 }
 
+/// 式を評価して文字列を返すヘルパー（テスト・外部から利用）
+#[allow(dead_code)]
+fn eval_to_string(input: &str) -> Result<String, String> {
+    let env = make_global_env();
+    let val = run(input, &env)?;
+    Ok(format!("{}", val))
+}
+
 fn main() {
     let env = make_global_env();
 
@@ -841,5 +849,603 @@ fn main() {
                 break;
             }
         }
+    }
+}
+
+// ===== テスト =====
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ヘルパー: 入力を評価して Value を返す
+    fn eval_input(input: &str) -> Result<Value, String> {
+        let env = make_global_env();
+        run(input, &env)
+    }
+
+    // ヘルパー: 複数式を同一環境で評価し最後の値を返す
+    fn eval_program(inputs: &[&str]) -> Result<Value, String> {
+        let env = make_global_env();
+        let mut result = Value::Nil;
+        for input in inputs {
+            result = run(input, &env)?;
+        }
+        Ok(result)
+    }
+
+    // ヘルパー: 評価結果の Display 文字列を返す
+    fn eval_str(input: &str) -> String {
+        format!("{}", eval_input(input).unwrap())
+    }
+
+    // ヘルパー: 複数式の最終結果の Display 文字列を返す
+    fn eval_program_str(inputs: &[&str]) -> String {
+        format!("{}", eval_program(inputs).unwrap())
+    }
+
+    // ===== Tokenizer =====
+
+    #[test]
+    fn tokenize_integer() {
+        let tokens = tokenize("42").unwrap();
+        assert_eq!(tokens, vec![Token::Number(42.0)]);
+    }
+
+    #[test]
+    fn tokenize_negative_number() {
+        let tokens = tokenize("-7").unwrap();
+        assert_eq!(tokens, vec![Token::Number(-7.0)]);
+    }
+
+    #[test]
+    fn tokenize_float() {
+        let tokens = tokenize("3.14").unwrap();
+        assert_eq!(tokens, vec![Token::Number(3.14)]);
+    }
+
+    #[test]
+    fn tokenize_string() {
+        let tokens = tokenize(r#""hello""#).unwrap();
+        assert_eq!(tokens, vec![Token::Str("hello".to_string())]);
+    }
+
+    #[test]
+    fn tokenize_string_escape() {
+        let tokens = tokenize(r#""a\nb""#).unwrap();
+        assert_eq!(tokens, vec![Token::Str("a\nb".to_string())]);
+    }
+
+    #[test]
+    fn tokenize_booleans() {
+        let tokens = tokenize("#t #f").unwrap();
+        assert_eq!(tokens, vec![Token::Bool(true), Token::Bool(false)]);
+    }
+
+    #[test]
+    fn tokenize_symbol() {
+        let tokens = tokenize("foo").unwrap();
+        assert_eq!(tokens, vec![Token::Symbol("foo".to_string())]);
+    }
+
+    #[test]
+    fn tokenize_s_expression() {
+        let tokens = tokenize("(+ 1 2)").unwrap();
+        assert_eq!(
+            tokens,
+            vec![
+                Token::LParen,
+                Token::Symbol("+".to_string()),
+                Token::Number(1.0),
+                Token::Number(2.0),
+                Token::RParen,
+            ]
+        );
+    }
+
+    #[test]
+    fn tokenize_comment() {
+        let tokens = tokenize("; this is a comment\n42").unwrap();
+        assert_eq!(tokens, vec![Token::Number(42.0)]);
+    }
+
+    #[test]
+    fn tokenize_quote_sugar() {
+        let tokens = tokenize("'x").unwrap();
+        assert_eq!(
+            tokens,
+            vec![Token::Quote, Token::Symbol("x".to_string())]
+        );
+    }
+
+    #[test]
+    fn tokenize_unterminated_string() {
+        assert!(tokenize(r#""hello"#).is_err());
+    }
+
+    #[test]
+    fn tokenize_invalid_hash() {
+        assert!(tokenize("#x").is_err());
+    }
+
+    // ===== Parser =====
+
+    #[test]
+    fn parse_atom() {
+        let tokens = tokenize("42").unwrap();
+        let (val, rest) = parse(&tokens).unwrap();
+        assert_eq!(format!("{}", val), "42");
+        assert!(rest.is_empty());
+    }
+
+    #[test]
+    fn parse_empty_list_is_nil() {
+        let tokens = tokenize("()").unwrap();
+        let (val, _) = parse(&tokens).unwrap();
+        assert_eq!(val, Value::Nil);
+    }
+
+    #[test]
+    fn parse_nested_list() {
+        let tokens = tokenize("(+ (* 2 3) 4)").unwrap();
+        let (val, rest) = parse(&tokens).unwrap();
+        assert_eq!(format!("{}", val), "(+ (* 2 3) 4)");
+        assert!(rest.is_empty());
+    }
+
+    #[test]
+    fn parse_quote_sugar() {
+        let tokens = tokenize("'(1 2)").unwrap();
+        let (val, _) = parse(&tokens).unwrap();
+        assert_eq!(format!("{}", val), "(quote (1 2))");
+    }
+
+    #[test]
+    fn parse_all_multiple() {
+        let tokens = tokenize("1 2 3").unwrap();
+        let results = parse_all(&tokens).unwrap();
+        assert_eq!(results.len(), 3);
+    }
+
+    #[test]
+    fn parse_missing_rparen() {
+        let tokens = tokenize("(+ 1").unwrap();
+        assert!(parse(&tokens).is_err());
+    }
+
+    #[test]
+    fn parse_unexpected_rparen() {
+        let tokens = tokenize(")").unwrap();
+        assert!(parse(&tokens).is_err());
+    }
+
+    // ===== Evaluator: 自己評価 =====
+
+    #[test]
+    fn eval_number() {
+        assert_eq!(eval_str("42"), "42");
+    }
+
+    #[test]
+    fn eval_string() {
+        assert_eq!(eval_str(r#""hello""#), r#""hello""#);
+    }
+
+    #[test]
+    fn eval_bool() {
+        assert_eq!(eval_str("#t"), "#t");
+        assert_eq!(eval_str("#f"), "#f");
+    }
+
+    // ===== Evaluator: 算術 =====
+
+    #[test]
+    fn eval_add() {
+        assert_eq!(eval_str("(+ 1 2 3)"), "6");
+    }
+
+    #[test]
+    fn eval_add_identity() {
+        assert_eq!(eval_str("(+)"), "0");
+    }
+
+    #[test]
+    fn eval_mul() {
+        assert_eq!(eval_str("(* 2 3 4)"), "24");
+    }
+
+    #[test]
+    fn eval_mul_identity() {
+        assert_eq!(eval_str("(*)"), "1");
+    }
+
+    #[test]
+    fn eval_sub() {
+        assert_eq!(eval_str("(- 10 3)"), "7");
+    }
+
+    #[test]
+    fn eval_unary_minus() {
+        assert_eq!(eval_str("(- 5)"), "-5");
+    }
+
+    #[test]
+    fn eval_div() {
+        assert_eq!(eval_str("(/ 10 2)"), "5");
+    }
+
+    #[test]
+    fn eval_div_by_zero() {
+        assert!(eval_input("(/ 1 0)").is_err());
+    }
+
+    // ===== Evaluator: 比較 =====
+
+    #[test]
+    fn eval_eq_numbers() {
+        assert_eq!(eval_str("(= 3 3)"), "#t");
+        assert_eq!(eval_str("(= 3 4)"), "#f");
+    }
+
+    #[test]
+    fn eval_lt() {
+        assert_eq!(eval_str("(< 1 2)"), "#t");
+        assert_eq!(eval_str("(< 2 1)"), "#f");
+    }
+
+    #[test]
+    fn eval_gt() {
+        assert_eq!(eval_str("(> 2 1)"), "#t");
+    }
+
+    #[test]
+    fn eval_lte() {
+        assert_eq!(eval_str("(<= 2 2)"), "#t");
+        assert_eq!(eval_str("(<= 3 2)"), "#f");
+    }
+
+    #[test]
+    fn eval_gte() {
+        assert_eq!(eval_str("(>= 2 2)"), "#t");
+    }
+
+    // ===== Evaluator: quote =====
+
+    #[test]
+    fn eval_quote() {
+        assert_eq!(eval_str("(quote (1 2 3))"), "(1 2 3)");
+    }
+
+    #[test]
+    fn eval_quote_sugar() {
+        assert_eq!(eval_str("'(a b c)"), "(a b c)");
+    }
+
+    // ===== Evaluator: if =====
+
+    #[test]
+    fn eval_if_true() {
+        assert_eq!(eval_str("(if #t 1 2)"), "1");
+    }
+
+    #[test]
+    fn eval_if_false() {
+        assert_eq!(eval_str("(if #f 1 2)"), "2");
+    }
+
+    #[test]
+    fn eval_if_no_else() {
+        assert_eq!(eval_str("(if #f 1)"), "()");
+    }
+
+    // ===== Evaluator: def =====
+
+    #[test]
+    fn eval_def_variable() {
+        assert_eq!(eval_program_str(&["(def x 42)", "x"]), "42");
+    }
+
+    #[test]
+    fn eval_def_function() {
+        assert_eq!(
+            eval_program_str(&["(def (square n) (* n n))", "(square 5)"]),
+            "25"
+        );
+    }
+
+    // ===== Evaluator: lambda =====
+
+    #[test]
+    fn eval_lambda_call() {
+        assert_eq!(eval_str("((lambda (x) (+ x 1)) 10)"), "11");
+    }
+
+    #[test]
+    fn eval_lambda_no_params() {
+        assert_eq!(eval_str("((lambda () 42))"), "42");
+    }
+
+    // ===== Evaluator: クロージャ =====
+
+    #[test]
+    fn eval_closure_lexical_scope() {
+        assert_eq!(
+            eval_program_str(&[
+                "(def (make-adder n) (lambda (x) (+ n x)))",
+                "(def add5 (make-adder 5))",
+                "(add5 10)"
+            ]),
+            "15"
+        );
+    }
+
+    #[test]
+    fn eval_closure_capture() {
+        assert_eq!(
+            eval_program_str(&[
+                "(def (counter) (let ((n 0)) (lambda () (set! n (+ n 1)) n)))",
+                "(def c (counter))",
+                "(c)",
+                "(c)",
+                "(c)"
+            ]),
+            "3"
+        );
+    }
+
+    // ===== Evaluator: begin =====
+
+    #[test]
+    fn eval_begin() {
+        assert_eq!(eval_str("(begin 1 2 3)"), "3");
+    }
+
+    // ===== Evaluator: set! =====
+
+    #[test]
+    fn eval_set() {
+        assert_eq!(
+            eval_program_str(&["(def x 1)", "(set! x 42)", "x"]),
+            "42"
+        );
+    }
+
+    // ===== Evaluator: cond =====
+
+    #[test]
+    fn eval_cond() {
+        assert_eq!(eval_str("(cond (#f 1) (#t 2) (else 3))"), "2");
+    }
+
+    #[test]
+    fn eval_cond_else() {
+        assert_eq!(eval_str("(cond (#f 1) (else 99))"), "99");
+    }
+
+    // ===== Evaluator: let =====
+
+    #[test]
+    fn eval_let() {
+        assert_eq!(eval_str("(let ((x 2) (y 3)) (+ x y))"), "5");
+    }
+
+    #[test]
+    fn eval_let_empty_bindings() {
+        assert_eq!(eval_str("(let () 42)"), "42");
+    }
+
+    // ===== Evaluator: and =====
+
+    #[test]
+    fn eval_and_all_true() {
+        assert_eq!(eval_str("(and 1 2 3)"), "3");
+    }
+
+    #[test]
+    fn eval_and_short_circuit() {
+        assert_eq!(eval_str("(and 1 #f 3)"), "#f");
+    }
+
+    #[test]
+    fn eval_and_empty() {
+        assert_eq!(eval_str("(and)"), "#t");
+    }
+
+    // ===== Builtin: car/cdr/cons =====
+
+    #[test]
+    fn eval_car() {
+        assert_eq!(eval_str("(car '(1 2 3))"), "1");
+    }
+
+    #[test]
+    fn eval_cdr() {
+        assert_eq!(eval_str("(cdr '(1 2 3))"), "(2 3)");
+    }
+
+    #[test]
+    fn eval_cdr_singleton() {
+        assert_eq!(eval_str("(cdr '(1))"), "()");
+    }
+
+    #[test]
+    fn eval_cons() {
+        assert_eq!(eval_str("(cons 1 '(2 3))"), "(1 2 3)");
+    }
+
+    #[test]
+    fn eval_cons_nil() {
+        assert_eq!(eval_str("(cons 1 '())"), "(1)");
+    }
+
+    // ===== Builtin: list =====
+
+    #[test]
+    fn eval_list() {
+        assert_eq!(eval_str("(list 1 2 3)"), "(1 2 3)");
+    }
+
+    #[test]
+    fn eval_list_empty() {
+        assert_eq!(eval_str("(list)"), "()");
+    }
+
+    // ===== Builtin: 型述語 =====
+
+    #[test]
+    fn eval_type_predicates() {
+        assert_eq!(eval_str("(number? 42)"), "#t");
+        assert_eq!(eval_str("(number? \"x\")"), "#f");
+        assert_eq!(eval_str("(string? \"hi\")"), "#t");
+        assert_eq!(eval_str("(boolean? #t)"), "#t");
+        assert_eq!(eval_str("(symbol? 'x)"), "#t");
+        assert_eq!(eval_str("(null? '())"), "#t");
+        assert_eq!(eval_str("(null? '(1))"), "#f");
+        assert_eq!(eval_str("(pair? '(1 2))"), "#t");
+        assert_eq!(eval_str("(pair? '())"), "#f");
+        assert_eq!(eval_str("(procedure? +)"), "#t");
+        assert_eq!(eval_str("(procedure? 42)"), "#f");
+    }
+
+    // ===== Builtin: eq?/equal? =====
+
+    #[test]
+    fn eval_eq() {
+        assert_eq!(eval_str("(eq? 'a 'a)"), "#t");
+        assert_eq!(eval_str("(eq? 'a 'b)"), "#f");
+        assert_eq!(eval_str("(eq? 1 1)"), "#t");
+    }
+
+    #[test]
+    fn eval_equal() {
+        assert_eq!(eval_str("(equal? '(1 2) '(1 2))"), "#t");
+        assert_eq!(eval_str("(equal? '(1 2) '(1 3))"), "#f");
+    }
+
+    // ===== Builtin: not =====
+
+    #[test]
+    fn eval_not() {
+        assert_eq!(eval_str("(not #f)"), "#t");
+        assert_eq!(eval_str("(not #t)"), "#f");
+        assert_eq!(eval_str("(not 0)"), "#f"); // 0 is truthy in Scheme
+    }
+
+    // ===== 再帰 =====
+
+    #[test]
+    fn eval_factorial() {
+        assert_eq!(
+            eval_program_str(&[
+                "(def (factorial n) (if (= n 0) 1 (* n (factorial (- n 1)))))",
+                "(factorial 10)"
+            ]),
+            "3628800"
+        );
+    }
+
+    #[test]
+    fn eval_fibonacci() {
+        assert_eq!(
+            eval_program_str(&[
+                "(def (fib n) (if (< n 2) n (+ (fib (- n 1)) (fib (- n 2)))))",
+                "(fib 10)"
+            ]),
+            "55"
+        );
+    }
+
+    #[test]
+    fn eval_map_user_defined() {
+        assert_eq!(
+            eval_program_str(&[
+                "(def (my-map f lst) (if (null? lst) '() (cons (f (car lst)) (my-map f (cdr lst)))))",
+                "(my-map (lambda (x) (* x x)) '(1 2 3 4 5))"
+            ]),
+            "(1 4 9 16 25)"
+        );
+    }
+
+    // ===== エラー =====
+
+    #[test]
+    fn error_undefined_variable() {
+        assert!(eval_input("xyz").is_err());
+    }
+
+    #[test]
+    fn error_not_a_function() {
+        assert!(eval_input("(42 1 2)").is_err());
+    }
+
+    #[test]
+    fn error_arity_mismatch() {
+        let result = eval_program(&["(def (f x) x)", "(f 1 2)"]);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn error_set_undefined() {
+        assert!(eval_input("(set! z 99)").is_err());
+    }
+
+    // ===== is_balanced =====
+
+    #[test]
+    fn balanced_simple() {
+        assert!(is_balanced("(+ 1 2)"));
+        assert!(!is_balanced("(+ 1"));
+        assert!(is_balanced(""));
+    }
+
+    #[test]
+    fn balanced_string() {
+        assert!(is_balanced(r#""hello""#));
+        assert!(!is_balanced(r#""hello"#));
+    }
+
+    #[test]
+    fn balanced_nested() {
+        assert!(is_balanced("((a) (b (c)))"));
+        assert!(!is_balanced("((a) (b (c))"));
+    }
+
+    // ===== Display =====
+
+    #[test]
+    fn display_integer() {
+        assert_eq!(format!("{}", Value::Number(5.0)), "5");
+    }
+
+    #[test]
+    fn display_float() {
+        assert_eq!(format!("{}", Value::Number(3.14)), "3.14");
+    }
+
+    #[test]
+    fn display_nil() {
+        assert_eq!(format!("{}", Value::Nil), "()");
+    }
+
+    #[test]
+    fn display_lambda() {
+        let val = Value::Lambda {
+            params: vec![],
+            body: vec![],
+            env: Env::new(),
+        };
+        assert_eq!(format!("{}", val), "#<lambda>");
+    }
+
+    #[test]
+    fn display_builtin() {
+        assert_eq!(format!("{}", Value::BuiltinFunc("+".to_string())), "#<builtin:+>");
+    }
+
+    // ===== eval_to_string =====
+
+    #[test]
+    fn eval_to_string_basic() {
+        assert_eq!(eval_to_string("(+ 2 3)").unwrap(), "5");
     }
 }
