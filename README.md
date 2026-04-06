@@ -16,6 +16,7 @@
 
 | ディレクトリ | 対応する章 | 内容 |
 |---|---|---|
+| [chapters/ch04/mini-eval.scm](chapters/ch04/mini-eval.scm) | Chapter 4: メタ循環評価器 | SchemeによるSchemeインタプリタ |
 | [chapters/ch05/main.rs](chapters/ch05/main.rs) | Chapter 5: 字句解析 | トークナイザ（Lexer） |
 | [chapters/ch06/main.rs](chapters/ch06/main.rs) | Chapter 6: 構文解析 | パーサー（Parser）+ Lexer |
 | [chapters/ch07/main.rs](chapters/ch07/main.rs) | Chapter 7: 評価器 | Evaluator + 環境 + 特殊形式 |
@@ -45,7 +46,7 @@ Type (exit) to quit.
 
 mini> (+ 1 2 3)
 6
-mini> (define (factorial n) (if (= n 0) 1 (* n (factorial (- n 1)))))
+mini> (def (factorial n) (if (= n 0) 1 (* n (factorial (- n 1)))))
 factorial
 mini> (factorial 10)
 3628800
@@ -65,7 +66,7 @@ gosh mini-eval.scm
 gosh> (my-repl)
 mini> (+ 1 2 3)
 6
-mini> (define (make-adder n) (lambda (x) (+ n x)))
+mini> (def (make-adder n) (lambda (x) (+ n x)))
 make-adder
 mini> ((make-adder 5) 100)
 105
