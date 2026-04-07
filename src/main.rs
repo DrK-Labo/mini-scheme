@@ -28,7 +28,7 @@ enum Value {
     Symbol(String),
     List(Vec<Value>),
     Nil,
-    Lambda {
+    Closure {
         params: Vec<String>,
         body: Vec<Value>,
         env: EnvRef,
@@ -76,7 +76,7 @@ impl std::fmt::Display for Value {
                 }
                 write!(f, ")")
             }
-            Value::Lambda { .. } => write!(f, "#<lambda>"),
+            Value::Closure { .. } => write!(f, "#<closure>"),
             Value::BuiltinFunc(name) => write!(f, "#<builtin:{}>", name),
         }
     }
@@ -334,12 +334,12 @@ fn eval(expr: &Value, env: &EnvRef) -> Result<Value, String> {
                 eval_call(elems, env)
             }
         }
-        Value::Lambda { .. } | Value::BuiltinFunc(_) => Ok(expr.clone()),
+        Value::Closure { .. } | Value::BuiltinFunc(_) => Ok(expr.clone()),
     }
 }
 
 fn is_truthy(val: &Value) -> bool {
-    !matches!(val, Value::Bool(false) | Value::Nil)
+    !matches!(val, Value::Bool(false))
 }
 
 fn eval_quote(elems: &[Value]) -> Result<Value, String> {
@@ -388,12 +388,12 @@ fn eval_define(elems: &[Value], env: &EnvRef) -> Result<Value, String> {
                     _ => Err("def: parameter must be a symbol".to_string()),
                 })
                 .collect();
-            let lambda = Value::Lambda {
+            let closure = Value::Closure {
                 params: params?,
                 body: elems[2..].to_vec(),
                 env: Rc::clone(env),
             };
-            env.borrow_mut().define(name.clone(), lambda);
+            env.borrow_mut().define(name.clone(), closure);
             Ok(Value::Symbol(name))
         }
         _ => Err("def: first argument must be a symbol or list".to_string()),
@@ -415,7 +415,7 @@ fn eval_lambda(elems: &[Value], env: &EnvRef) -> Result<Value, String> {
         Value::Nil => Ok(vec![]),
         _ => Err("lambda: parameters must be a list".to_string()),
     };
-    Ok(Value::Lambda {
+    Ok(Value::Closure {
         params: params?,
         body: elems[2..].to_vec(),
         env: Rc::clone(env),
@@ -537,7 +537,7 @@ fn eval_call(elems: &[Value], env: &EnvRef) -> Result<Value, String> {
 
 fn apply_func(func: &Value, args: &[Value]) -> Result<Value, String> {
     match func {
-        Value::Lambda { params, body, env } => {
+        Value::Closure { params, body, env } => {
             if params.len() != args.len() {
                 return Err(format!(
                     "Expected {} arguments, got {}",
@@ -601,7 +601,7 @@ fn apply_builtin(name: &str, args: &[Value]) -> Result<Value, String> {
         "symbol?" => Ok(Value::Bool(matches!(args.first(), Some(Value::Symbol(_))))),
         "procedure?" => Ok(Value::Bool(matches!(
             args.first(),
-            Some(Value::Lambda { .. }) | Some(Value::BuiltinFunc(_))
+            Some(Value::Closure { .. }) | Some(Value::BuiltinFunc(_))
         ))),
         "eq?" => builtin_eq(args),
         "equal?" => builtin_equal(args),
@@ -1428,13 +1428,13 @@ mod tests {
     }
 
     #[test]
-    fn display_lambda() {
-        let val = Value::Lambda {
+    fn display_closure() {
+        let val = Value::Closure {
             params: vec![],
             body: vec![],
             env: Env::new(),
         };
-        assert_eq!(format!("{}", val), "#<lambda>");
+        assert_eq!(format!("{}", val), "#<closure>");
     }
 
     #[test]
