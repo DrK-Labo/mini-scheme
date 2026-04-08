@@ -72,6 +72,37 @@ mini> ((make-adder 5) 100)
 105
 ```
 
+## テスト
+
+本リポジトリには4種類のテストがあります。
+
+| 種類 | ファイル | テスト数 | 内容 |
+|------|--------|--------|------|
+| ユニットテスト | `src/main.rs` 末尾 | 82個 | トークナイザ、パーサー、評価器、組み込み関数、エラー処理 |
+| 統合テスト | `tests/integration.rs` | 9個 | REPLバイナリの起動・入出力・終了 |
+| 章スナップショットテスト | `tests/chapters/test_ch05.sh` 〜 `test_ch10.sh` | 各章数件 | 各章のコードが正しくビルド・実行できるか |
+| Schemeテスト | `tests/scheme/test_eval.scm` | 26個 | メタ循環評価器（mini-eval.scm）の動作検証 |
+
+### テストの実行
+
+```bash
+# Rust ユニットテスト + 統合テスト
+cargo test
+
+# 各章スナップショットのビルド・実行テスト
+bash tests/chapters/run_chapter_tests.sh
+
+# メタ循環評価器のテスト（Gauche が必要）
+bash tests/scheme/run_scheme_tests.sh
+
+# 上記すべてを一括実行
+bash run_tests.sh
+```
+
+ユニットテストは `src/main.rs` のファイル末尾に `#[cfg(test)]` で配置しています。これはRustの標準的な慣習で、テストコードは `cargo test` 実行時にだけコンパイルされ、本番バイナリには含まれません。テストを含まない実装コードは `chapters/ch10/main.rs` を参照してください。
+
+テストの書き方の詳細は、書籍の **Appendix D: テストの書き方** を参照してください。
+
 ## ライセンス
 
 MIT
