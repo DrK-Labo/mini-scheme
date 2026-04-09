@@ -562,9 +562,17 @@ fn apply_func(func: &Value, args: &[Value]) -> Result<Value, String> {
 fn apply_builtin(name: &str, args: &[Value]) -> Result<Value, String> {
     match name {
         "+" => numeric_op(args, |a, b| a + b, 0.0),
-        "-" => numeric_op(args, |a, b| a - b, 0.0),
+        "-" => {
+            if args.is_empty() {
+                return Err("- requires at least 1 argument".to_string());
+            }
+            numeric_op(args, |a, b| a - b, 0.0)
+        }
         "*" => numeric_op(args, |a, b| a * b, 1.0),
         "/" => {
+            if args.is_empty() {
+                return Err("/ requires at least 1 argument".to_string());
+            }
             for arg in &args[1..] {
                 if let Value::Number(n) = arg {
                     if *n == 0.0 {
