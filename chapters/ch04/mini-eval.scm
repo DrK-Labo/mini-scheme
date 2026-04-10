@@ -3,7 +3,7 @@
 ;;;; Chapter 4 の完成コード。Gauche (gosh) で実行できます。
 ;;;;
 ;;;; 使い方:
-;;;;   $ gosh mini-eval.scm
+;;;;   $ gosh -l mini-eval.scm
 ;;;;   gosh> (my-repl)
 ;;;;   mini> (+ 1 2 3)
 ;;;;   6

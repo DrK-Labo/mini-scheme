@@ -59,7 +59,7 @@ Bye!
 [Gauche](https://practical-scheme.net/gauche/) が必要です。
 
 ```bash
-gosh mini-eval.scm
+gosh -l mini-eval.scm
 ```
 
 ```scheme
