@@ -766,35 +766,21 @@ fn run(input: &str, env: &EnvRef) -> Result<Value, String> {
     Ok(result)
 }
 
-fn is_balanced(input: &str) -> bool {
-    let mut depth = 0i32;
-    let mut in_string = false;
-    let mut escape = false;
-
-    for ch in input.chars() {
-        if escape {
-            escape = false;
-            continue;
+/// 入力が完結しているか、トークンレベルで判定する。
+/// tokenize が成功し、カッコの深さが 0 以下なら入力完了。
+/// tokenize が失敗した場合（未閉じ文字列など）は未完了と見なす。
+fn is_ready(input: &str) -> bool {
+    match tokenize(input) {
+        Ok(tokens) => {
+            let depth: i32 = tokens.iter().map(|t| match t {
+                Token::LParen => 1,
+                Token::RParen => -1,
+                _ => 0,
+            }).sum();
+            depth <= 0
         }
-        if ch == '\\' && in_string {
-            escape = true;
-            continue;
-        }
-        if ch == '"' {
-            in_string = !in_string;
-            continue;
-        }
-        if in_string {
-            continue;
-        }
-        match ch {
-            '(' => depth += 1,
-            ')' => depth -= 1,
-            _ => {}
-        }
+        Err(_) => false,
     }
-
-    depth == 0 && !in_string
 }
 
 fn main() {
@@ -827,7 +813,7 @@ fn main() {
                     break;
                 }
 
-                if !is_balanced(&buffer) {
+                if !is_ready(&buffer) {
                     continue;
                 }
 
@@ -838,10 +824,28 @@ fn main() {
                     continue;
                 }
 
-                match run(&input, &env) {
-                    Ok(Value::Nil) => {}
-                    Ok(val) => println!("{}", val),
-                    Err(e) => println!("Error: {}", e),
+                let tokens = match tokenize(&input) {
+                    Ok(t) => t,
+                    Err(e) => {
+                        println!("Error: {}", e);
+                        continue;
+                    }
+                };
+                let exprs = match parse_all(&tokens) {
+                    Ok(e) => e,
+                    Err(e) => {
+                        println!("Error: {}", e);
+                        continue;
+                    }
+                };
+                for expr in &exprs {
+                    match eval(expr, &env) {
+                        Ok(val) => println!("{}", val),
+                        Err(e) => {
+                            println!("Error: {}", e);
+                            break;
+                        }
+                    }
                 }
             }
             Err(e) => {

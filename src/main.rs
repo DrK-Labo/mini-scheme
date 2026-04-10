@@ -840,35 +840,21 @@ fn run(input: &str, env: &EnvRef) -> Result<Value, String> {
     Ok(result)
 }
 
-fn is_balanced(input: &str) -> bool {
-    let mut depth = 0i32;
-    let mut in_string = false;
-    let mut escape = false;
-
-    for ch in input.chars() {
-        if escape {
-            escape = false;
-            continue;
+/// 入力が完結しているか、トークンレベルで判定する。
+/// tokenize が成功し、カッコの深さが 0 以下なら入力完了。
+/// tokenize が失敗した場合（未閉じ文字列など）は未完了と見なす。
+fn is_ready(input: &str) -> bool {
+    match tokenize(input) {
+        Ok(tokens) => {
+            let depth: i32 = tokens.iter().map(|t| match t {
+                Token::LParen => 1,
+                Token::RParen => -1,
+                _ => 0,
+            }).sum();
+            depth <= 0
         }
-        if ch == '\\' && in_string {
-            escape = true;
-            continue;
-        }
-        if ch == '"' {
-            in_string = !in_string;
-            continue;
-        }
-        if in_string {
-            continue;
-        }
-        match ch {
-            '(' => depth += 1,
-            ')' => depth -= 1,
-            _ => {}
-        }
+        Err(_) => false, // 未閉じ文字列など → 継続入力を待つ
     }
-
-    depth == 0 && !in_string
 }
 
 /// 式を評価して文字列を返すヘルパー（テスト・外部から利用）
@@ -909,7 +895,7 @@ fn main() {
                     break;
                 }
 
-                if !is_balanced(&buffer) {
+                if !is_ready(&buffer) {
                     continue;
                 }
 
@@ -920,10 +906,28 @@ fn main() {
                     continue;
                 }
 
-                match run(&input, &env) {
-                    Ok(Value::Nil) => {}
-                    Ok(val) => println!("{}", val),
-                    Err(e) => println!("Error: {}", e),
+                let tokens = match tokenize(&input) {
+                    Ok(t) => t,
+                    Err(e) => {
+                        println!("Error: {}", e);
+                        continue;
+                    }
+                };
+                let exprs = match parse_all(&tokens) {
+                    Ok(e) => e,
+                    Err(e) => {
+                        println!("Error: {}", e);
+                        continue;
+                    }
+                };
+                for expr in &exprs {
+                    match eval(expr, &env) {
+                        Ok(val) => println!("{}", val),
+                        Err(e) => {
+                            println!("Error: {}", e);
+                            break;
+                        }
+                    }
                 }
             }
             Err(e) => {
@@ -1471,25 +1475,31 @@ mod tests {
         assert!(eval_input("(set! z 99)").is_err());
     }
 
-    // ===== is_balanced =====
+    // ===== is_ready =====
 
     #[test]
-    fn balanced_simple() {
-        assert!(is_balanced("(+ 1 2)"));
-        assert!(!is_balanced("(+ 1"));
-        assert!(is_balanced(""));
+    fn ready_simple() {
+        assert!(is_ready("(+ 1 2)"));
+        assert!(!is_ready("(+ 1"));
+        assert!(is_ready(""));
     }
 
     #[test]
-    fn balanced_string() {
-        assert!(is_balanced(r#""hello""#));
-        assert!(!is_balanced(r#""hello"#));
+    fn ready_string() {
+        assert!(is_ready(r#""hello""#));
+        assert!(!is_ready(r#""hello"#));
     }
 
     #[test]
-    fn balanced_nested() {
-        assert!(is_balanced("((a) (b (c)))"));
-        assert!(!is_balanced("((a) (b (c))"));
+    fn ready_nested() {
+        assert!(is_ready("((a) (b (c)))"));
+        assert!(!is_ready("((a) (b (c))"));
+    }
+
+    #[test]
+    fn ready_extra_rparen() {
+        // 閉じカッコ過多 → 入力完了としてパーサーに回す（エラーになる）
+        assert!(is_ready("(+ 1 2))"));
     }
 
     // ===== Display =====
