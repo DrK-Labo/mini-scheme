@@ -648,27 +648,30 @@ fn apply_builtin(name: &str, args: &[Value]) -> Result<Value, String> {
         } else {
             Value::List(args.to_vec())
         }),
-        "null?" => Ok(Value::Bool(matches!(args.first(), Some(Value::Nil)))),
-        "pair?" => {
-            let result = match args.first() {
-                Some(Value::List(v)) if !v.is_empty() => true,
-                Some(Value::DottedList(..)) => true,
-                _ => false,
+        "null?" | "pair?" | "list?" | "number?" | "string?"
+        | "boolean?" | "symbol?" | "procedure?" => {
+            if args.len() != 1 {
+                return Err(format!(
+                    "{} requires exactly 1 argument", name
+                ));
+            }
+            let val = &args[0];
+            let result = match name {
+                "null?" => matches!(val, Value::Nil),
+                "pair?" => matches!(val, Value::List(v) if !v.is_empty())
+                    || matches!(val, Value::DottedList(..)),
+                "list?" => matches!(val, Value::List(_) | Value::Nil),
+                "number?" => matches!(val, Value::Number(_)),
+                "string?" => matches!(val, Value::Str(_)),
+                "boolean?" => matches!(val, Value::Bool(_)),
+                "symbol?" => matches!(val, Value::Symbol(_)),
+                "procedure?" => matches!(
+                    val, Value::Closure { .. } | Value::BuiltinFunc(_)
+                ),
+                _ => unreachable!(),
             };
             Ok(Value::Bool(result))
         }
-        "list?" => Ok(Value::Bool(matches!(
-            args.first(),
-            Some(Value::List(_)) | Some(Value::Nil)
-        ))),
-        "number?" => Ok(Value::Bool(matches!(args.first(), Some(Value::Number(_))))),
-        "string?" => Ok(Value::Bool(matches!(args.first(), Some(Value::Str(_))))),
-        "boolean?" => Ok(Value::Bool(matches!(args.first(), Some(Value::Bool(_))))),
-        "symbol?" => Ok(Value::Bool(matches!(args.first(), Some(Value::Symbol(_))))),
-        "procedure?" => Ok(Value::Bool(matches!(
-            args.first(),
-            Some(Value::Closure { .. }) | Some(Value::BuiltinFunc(_))
-        ))),
         "eq?" => builtin_eq(args),
         "equal?" => builtin_equal(args),
         "not" => {
