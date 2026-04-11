@@ -15,6 +15,7 @@ enum Token {
     Bool(bool),
     Symbol(String),
     Quote,
+    Dot,
 }
 
 // ===== S式 / 値（Chapter 7-8） =====
@@ -26,6 +27,7 @@ enum Value {
     Bool(bool),
     Symbol(String),
     List(Vec<Value>),
+    DottedList(Vec<Value>, Box<Value>),
     Nil,
     Closure {
         params: Vec<String>,
@@ -43,6 +45,7 @@ impl PartialEq for Value {
             (Value::Bool(a), Value::Bool(b)) => a == b,
             (Value::Symbol(a), Value::Symbol(b)) => a == b,
             (Value::List(a), Value::List(b)) => a == b,
+            (Value::DottedList(a1, a2), Value::DottedList(b1, b2)) => a1 == b1 && a2 == b2,
             (Value::Nil, Value::Nil) => true,
             (Value::BuiltinFunc(a), Value::BuiltinFunc(b)) => a == b,
             _ => false,
@@ -73,6 +76,17 @@ impl std::fmt::Display for Value {
                     }
                     write!(f, "{}", elem)?;
                 }
+                write!(f, ")")
+            }
+            Value::DottedList(elems, last) => {
+                write!(f, "(")?;
+                for (i, elem) in elems.iter().enumerate() {
+                    if i > 0 {
+                        write!(f, " ")?;
+                    }
+                    write!(f, "{}", elem)?;
+                }
+                write!(f, " . {}", last)?;
                 write!(f, ")")
             }
             Value::Closure { .. } => write!(f, "#<closure>"),
@@ -208,7 +222,11 @@ fn tokenize(input: &str) -> Result<Vec<Token>, String> {
                             && c != '"'
                             && c != ';'
                     });
-                    tokens.push(Token::Symbol(sym));
+                    if sym == "." {
+                        tokens.push(Token::Dot);
+                    } else {
+                        tokens.push(Token::Symbol(sym));
+                    }
                 }
             }
         }
@@ -262,6 +280,33 @@ fn parse(tokens: &[Token]) -> Result<(Value, &[Token]), String> {
                     rest = &rest[1..];
                     break;
                 }
+                if rest[0] == Token::Dot {
+                    if list.is_empty() {
+                        return Err("Unexpected '.' at start of list".to_string());
+                    }
+                    rest = &rest[1..];
+                    let (tail, remaining) = parse(rest)?;
+                    rest = remaining;
+                    if rest.is_empty() || rest[0] != Token::RParen {
+                        return Err("Expected ')' after dotted pair tail".to_string());
+                    }
+                    rest = &rest[1..];
+                    return match tail {
+                        Value::Nil => Ok((Value::List(list), rest)),
+                        Value::List(mut elems) => {
+                            list.append(&mut elems);
+                            Ok((Value::List(list), rest))
+                        }
+                        Value::DottedList(mut elems, last) => {
+                            list.append(&mut elems);
+                            Ok((Value::DottedList(list, last), rest))
+                        }
+                        other => Ok((
+                            Value::DottedList(list, Box::new(other)),
+                            rest,
+                        )),
+                    };
+                }
                 let (val, remaining) = parse(rest)?;
                 list.push(val);
                 rest = remaining;
@@ -275,6 +320,8 @@ fn parse(tokens: &[Token]) -> Result<(Value, &[Token]), String> {
         }
 
         Token::RParen => Err("Unexpected ')'".to_string()),
+
+        Token::Dot => Err("Unexpected '.'".to_string()),
 
         Token::Quote => {
             let (val, rest) = parse(&tokens[1..])?;
@@ -332,6 +379,9 @@ fn eval(expr: &Value, env: &EnvRef) -> Result<Value, String> {
             } else {
                 eval_call(elems, env)
             }
+        }
+        Value::DottedList(..) => {
+            Err("Cannot evaluate improper list (dotted pair)".to_string())
         }
         Value::Closure { .. } | Value::BuiltinFunc(_) => Ok(expr.clone()),
     }

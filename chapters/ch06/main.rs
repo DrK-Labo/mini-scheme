@@ -10,6 +10,7 @@ enum Token {
     Bool(bool),       // #t, #f
     Symbol(String),   // シンボル
     Quote,            // '
+    Dot,              // .
 }
 
 /// 文字列をトークン列に分解する
@@ -98,7 +99,11 @@ fn tokenize(input: &str) -> Result<Vec<Token>, String> {
                             && c != '"'
                             && c != ';'
                     });
-                    tokens.push(Token::Symbol(sym));
+                    if sym == "." {
+                        tokens.push(Token::Dot);
+                    } else {
+                        tokens.push(Token::Symbol(sym));
+                    }
                 }
             }
         }

@@ -925,6 +925,7 @@ fn main() {
                 };
                 for expr in &exprs {
                     match eval(expr, &env) {
+                        Ok(Value::Nil) => {}
                         Ok(val) => println!("{}", val),
                         Err(e) => {
                             println!("Error: {}", e);
@@ -1698,5 +1699,97 @@ mod tests {
     fn eval_equal_normalized() {
         // パーサーの正規化により同一
         assert_eq!(eval_str("(equal? '(1 2 3) '(1 . (2 3)))"), "#t");
+    }
+
+    // --- DottedList 深層テスト ---
+
+    #[test]
+    fn eval_cons_chain_dotted() {
+        assert_eq!(eval_str("(cons 0 (cons 1 (cons 2 3)))"), "(0 1 2 . 3)");
+    }
+
+    #[test]
+    fn eval_deeply_nested_dotted() {
+        assert_eq!(eval_str("'(a . (b . (c . d)))"), "(a b c . d)");
+    }
+
+    #[test]
+    fn eval_cdr_chain_dotted() {
+        assert_eq!(eval_str("(cdr (cdr '(1 2 3 . 4)))"), "(3 . 4)");
+    }
+
+    // --- エラーケース ---
+
+    #[test]
+    fn error_car_empty_list() {
+        assert!(eval_input("(car '())").is_err());
+    }
+
+    #[test]
+    fn error_cdr_non_pair() {
+        assert!(eval_input("(cdr 42)").is_err());
+    }
+
+    #[test]
+    fn error_car_non_pair() {
+        assert!(eval_input("(car \"hello\")").is_err());
+    }
+
+    // --- equal? 複合テスト ---
+
+    #[test]
+    fn eval_equal_nested_lists() {
+        assert_eq!(eval_str("(equal? '((1 2) (3 4)) '((1 2) (3 4)))"), "#t");
+        assert_eq!(eval_str("(equal? '((1 2) (3 4)) '((1 2) (3 5)))"), "#f");
+    }
+
+    #[test]
+    fn eval_equal_dotted_vs_list() {
+        assert_eq!(eval_str("(equal? '(1 . 2) '(1 2))"), "#f");
+    }
+
+    // --- 型述語の組み合わせ ---
+
+    #[test]
+    fn eval_pair_and_list_pred_cons() {
+        assert_eq!(eval_str("(pair? (cons 1 42))"), "#t");
+        assert_eq!(eval_str("(list? (cons 1 42))"), "#f");
+    }
+
+    #[test]
+    fn eval_null_of_dotted() {
+        assert_eq!(eval_str("(null? (cons 1 2))"), "#f");
+    }
+
+    // --- 環境・スコープ ---
+
+    #[test]
+    fn eval_let_shadowing() {
+        assert_eq!(eval_str("(let ((x 1)) (let ((x 2)) x))"), "2");
+    }
+
+    #[test]
+    fn eval_set_parent_scope() {
+        assert_eq!(
+            eval_program_str(&[
+                "(def x 1)",
+                "(def (inc-x) (set! x (+ x 1)))",
+                "(inc-x)",
+                "x",
+            ]),
+            "2"
+        );
+    }
+
+    // --- quote エッジケース ---
+
+    #[test]
+    fn eval_quote_special_form() {
+        assert_eq!(eval_str("'(if #t 1 2)"), "(if #t 1 2)");
+    }
+
+    #[test]
+    fn eval_nested_quote() {
+        assert_eq!(eval_str("''x"), "(quote x)");
     }
 }

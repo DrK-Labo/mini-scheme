@@ -16,6 +16,7 @@ enum Token {
     Bool(bool),
     Symbol(String),
     Quote,
+    Dot,
 }
 
 // ===== S式 / 値（Chapter 7-8） =====
@@ -27,6 +28,7 @@ enum Value {
     Bool(bool),
     Symbol(String),
     List(Vec<Value>),
+    DottedList(Vec<Value>, Box<Value>),
     Nil,
     Closure {
         params: Vec<String>,
@@ -44,6 +46,7 @@ impl PartialEq for Value {
             (Value::Bool(a), Value::Bool(b)) => a == b,
             (Value::Symbol(a), Value::Symbol(b)) => a == b,
             (Value::List(a), Value::List(b)) => a == b,
+            (Value::DottedList(a1, a2), Value::DottedList(b1, b2)) => a1 == b1 && a2 == b2,
             (Value::Nil, Value::Nil) => true,
             (Value::BuiltinFunc(a), Value::BuiltinFunc(b)) => a == b,
             _ => false,
@@ -74,6 +77,17 @@ impl std::fmt::Display for Value {
                     }
                     write!(f, "{}", elem)?;
                 }
+                write!(f, ")")
+            }
+            Value::DottedList(elems, last) => {
+                write!(f, "(")?;
+                for (i, elem) in elems.iter().enumerate() {
+                    if i > 0 {
+                        write!(f, " ")?;
+                    }
+                    write!(f, "{}", elem)?;
+                }
+                write!(f, " . {}", last)?;
                 write!(f, ")")
             }
             Value::Closure { .. } => write!(f, "#<closure>"),
@@ -209,7 +223,11 @@ fn tokenize(input: &str) -> Result<Vec<Token>, String> {
                             && c != '"'
                             && c != ';'
                     });
-                    tokens.push(Token::Symbol(sym));
+                    if sym == "." {
+                        tokens.push(Token::Dot);
+                    } else {
+                        tokens.push(Token::Symbol(sym));
+                    }
                 }
             }
         }
@@ -263,6 +281,33 @@ fn parse(tokens: &[Token]) -> Result<(Value, &[Token]), String> {
                     rest = &rest[1..];
                     break;
                 }
+                if rest[0] == Token::Dot {
+                    if list.is_empty() {
+                        return Err("Unexpected '.' at start of list".to_string());
+                    }
+                    rest = &rest[1..];
+                    let (tail, remaining) = parse(rest)?;
+                    rest = remaining;
+                    if rest.is_empty() || rest[0] != Token::RParen {
+                        return Err("Expected ')' after dotted pair tail".to_string());
+                    }
+                    rest = &rest[1..];
+                    return match tail {
+                        Value::Nil => Ok((Value::List(list), rest)),
+                        Value::List(mut elems) => {
+                            list.append(&mut elems);
+                            Ok((Value::List(list), rest))
+                        }
+                        Value::DottedList(mut elems, last) => {
+                            list.append(&mut elems);
+                            Ok((Value::DottedList(list, last), rest))
+                        }
+                        other => Ok((
+                            Value::DottedList(list, Box::new(other)),
+                            rest,
+                        )),
+                    };
+                }
                 let (val, remaining) = parse(rest)?;
                 list.push(val);
                 rest = remaining;
@@ -276,6 +321,8 @@ fn parse(tokens: &[Token]) -> Result<(Value, &[Token]), String> {
         }
 
         Token::RParen => Err("Unexpected ')'".to_string()),
+
+        Token::Dot => Err("Unexpected '.'".to_string()),
 
         Token::Quote => {
             let (val, rest) = parse(&tokens[1..])?;
@@ -333,6 +380,9 @@ fn eval(expr: &Value, env: &EnvRef) -> Result<Value, String> {
             } else {
                 eval_call(elems, env)
             }
+        }
+        Value::DottedList(..) => {
+            Err("Cannot evaluate improper list (dotted pair)".to_string())
         }
         Value::Closure { .. } | Value::BuiltinFunc(_) => Ok(expr.clone()),
     }
@@ -598,7 +648,19 @@ fn apply_builtin(name: &str, args: &[Value]) -> Result<Value, String> {
         } else {
             Value::List(args.to_vec())
         }),
-        "null?" | "pair?" | "number?" | "string?"
+        "pair?" => {
+            let result = match args.first() {
+                Some(Value::List(v)) if !v.is_empty() => true,
+                Some(Value::DottedList(..)) => true,
+                _ => false,
+            };
+            Ok(Value::Bool(result))
+        }
+        "list?" => Ok(Value::Bool(matches!(
+            args.first(),
+            Some(Value::List(_)) | Some(Value::Nil)
+        ))),
+        "null?" | "number?" | "string?"
         | "boolean?" | "symbol?" | "procedure?" => {
             if args.len() != 1 {
                 return Err(format!(
@@ -608,7 +670,6 @@ fn apply_builtin(name: &str, args: &[Value]) -> Result<Value, String> {
             let val = &args[0];
             let result = match name {
                 "null?" => matches!(val, Value::Nil),
-                "pair?" => matches!(val, Value::List(v) if !v.is_empty()),
                 "number?" => matches!(val, Value::Number(_)),
                 "string?" => matches!(val, Value::Str(_)),
                 "boolean?" => matches!(val, Value::Bool(_)),
@@ -686,7 +747,8 @@ fn builtin_car(args: &[Value]) -> Result<Value, String> {
     }
     match &args[0] {
         Value::List(elems) if !elems.is_empty() => Ok(elems[0].clone()),
-        _ => Err("car: argument must be a non-empty list".to_string()),
+        Value::DottedList(elems, _) => Ok(elems[0].clone()),
+        _ => Err("car: argument must be a pair".to_string()),
     }
 }
 
@@ -702,7 +764,14 @@ fn builtin_cdr(args: &[Value]) -> Result<Value, String> {
                 Ok(Value::List(elems[1..].to_vec()))
             }
         }
-        _ => Err("cdr: argument must be a non-empty list".to_string()),
+        Value::DottedList(elems, last) => {
+            if elems.len() == 1 {
+                Ok(*last.clone())
+            } else {
+                Ok(Value::DottedList(elems[1..].to_vec(), last.clone()))
+            }
+        }
+        _ => Err("cdr: argument must be a pair".to_string()),
     }
 }
 
@@ -716,8 +785,16 @@ fn builtin_cons(args: &[Value]) -> Result<Value, String> {
             new_list.extend(elems.iter().cloned());
             Ok(Value::List(new_list))
         }
+        Value::DottedList(elems, last) => {
+            let mut new_list = vec![args[0].clone()];
+            new_list.extend(elems.iter().cloned());
+            Ok(Value::DottedList(new_list, last.clone()))
+        }
         Value::Nil => Ok(Value::List(vec![args[0].clone()])),
-        _ => Ok(Value::List(vec![args[0].clone(), args[1].clone()])),
+        _ => Ok(Value::DottedList(
+            vec![args[0].clone()],
+            Box::new(args[1].clone()),
+        )),
     }
 }
 
@@ -750,7 +827,7 @@ fn make_global_env() -> EnvRef {
         "+", "-", "*", "/",
         "=", "<", ">", "<=", ">=",
         "car", "cdr", "cons", "list",
-        "null?", "pair?", "number?", "string?",
+        "null?", "pair?", "list?", "number?", "string?",
         "boolean?", "symbol?", "procedure?",
         "eq?", "equal?", "not",
         "display", "newline",
@@ -849,6 +926,7 @@ fn main() {
                 };
                 for expr in &exprs {
                     match eval(expr, &env) {
+                        Ok(Value::Nil) => {}
                         Ok(val) => println!("{}", val),
                         Err(e) => {
                             println!("Error: {}", e);
