@@ -1,5 +1,5 @@
 #!/bin/bash
-# test_ch09.sh — Chapter 9: 組み込み関数 のテスト
+# test_ch09.sh — Chapter 9: 関数とクロージャ のテスト
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJ_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
@@ -19,19 +19,15 @@ check() {
     fi
 }
 
-echo "=== Chapter 9: Builtins ==="
+echo "=== Chapter 9: Lambda & Closure ==="
 rustc "$SRC" -o "$TMPDIR/ch09" 2>/dev/null
 OUTPUT=$("$TMPDIR/ch09")
 
-check "car"              "(car '(1 2 3)) => 1"
-check "cdr"              "(cdr '(1 2 3)) => (2 3)"
-check "cons"             "(cons 0 '(1 2 3)) => (0 1 2 3)"
-check "null?"            "(null? '()) => #t"
-check "number?"          "(number? 42) => #t"
-check "string?"          '(string? "hello") => #t'
-check "user map"         '(my-map (lambda (x) (* x x))'
-check "map result"       '=> (1 4 9 16 25)'
-check "user filter"      '=> (4 5)'
+check "make-adder def"     'make-adder'
+check "closure call"       '(add5 3) => 8'
+check "counter 1"          '(c) => 1'
+check "counter 2"          '(c) => 2'
+check "counter 3"          '(c) => 3'
 
 echo "  $PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ]

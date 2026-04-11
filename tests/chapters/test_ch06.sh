@@ -1,5 +1,5 @@
 #!/bin/bash
-# test_ch06.sh — Chapter 6: 構文解析 のテスト
+# test_ch06.sh — Chapter 6: 字句解析 のテスト
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJ_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
@@ -19,15 +19,16 @@ check() {
     fi
 }
 
-echo "=== Chapter 6: Parser ==="
+echo "=== Chapter 6: Lexer ==="
 rustc "$SRC" -o "$TMPDIR/ch06" 2>/dev/null
 OUTPUT=$("$TMPDIR/ch06")
 
-check "simple list"        'Parsed: (+ 1 2)'
-check "nested def"         'Parsed: (def (square x) (* x x))'
-check "quote sugar"        'Parsed: (quote (1 2 3))'
-check "nested expr"        'Parsed: (+ 1 (* 2 3))'
-check "empty list → Nil"   'Parsed: ()'
+check "tokenize (+ 1 2)"          'Symbol("+")'
+check "number token"               'Number(1.0)'
+check "string token"               'Str("yes")'
+check "bool token"                 'Bool(true)'
+check "quote token"                'Quote'
+check "paren tokens"               'LParen'
 
 echo "  $PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ]

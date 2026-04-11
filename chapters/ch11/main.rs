@@ -1,7 +1,8 @@
-// src/main.rs — Chapter 8: 評価器（基本）
+// src/main.rs — mini-scheme: Scheme interpreter in Rust
 
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::io::{self, Write};
 use std::rc::Rc;
 
 // ===== トークン（Chapter 6） =====
@@ -304,7 +305,7 @@ fn parse_all(tokens: &[Token]) -> Result<Vec<Value>, String> {
     Ok(results)
 }
 
-// ===== 評価器（Chapter 8） =====
+// ===== 評価器（Chapter 8-10） =====
 
 fn eval(expr: &Value, env: &EnvRef) -> Result<Value, String> {
     match expr {
@@ -559,6 +560,8 @@ fn apply_func(func: &Value, args: &[Value]) -> Result<Value, String> {
     }
 }
 
+// ===== 組み込み関数（Chapter 10） =====
+
 fn apply_builtin(name: &str, args: &[Value]) -> Result<Value, String> {
     match name {
         "+" => numeric_op(args, |a, b| a + b, 0.0),
@@ -587,6 +590,49 @@ fn apply_builtin(name: &str, args: &[Value]) -> Result<Value, String> {
         ">" => compare_op(args, |a, b| a > b),
         "<=" => compare_op(args, |a, b| a <= b),
         ">=" => compare_op(args, |a, b| a >= b),
+        "car" => builtin_car(args),
+        "cdr" => builtin_cdr(args),
+        "cons" => builtin_cons(args),
+        "list" => Ok(if args.is_empty() {
+            Value::Nil
+        } else {
+            Value::List(args.to_vec())
+        }),
+        "null?" => Ok(Value::Bool(matches!(args.first(), Some(Value::Nil)))),
+        "pair?" => Ok(Value::Bool(matches!(
+            args.first(),
+            Some(Value::List(v)) if !v.is_empty()
+        ))),
+        "number?" => Ok(Value::Bool(matches!(args.first(), Some(Value::Number(_))))),
+        "string?" => Ok(Value::Bool(matches!(args.first(), Some(Value::Str(_))))),
+        "boolean?" => Ok(Value::Bool(matches!(args.first(), Some(Value::Bool(_))))),
+        "symbol?" => Ok(Value::Bool(matches!(args.first(), Some(Value::Symbol(_))))),
+        "procedure?" => Ok(Value::Bool(matches!(
+            args.first(),
+            Some(Value::Closure { .. }) | Some(Value::BuiltinFunc(_))
+        ))),
+        "eq?" => builtin_eq(args),
+        "equal?" => builtin_equal(args),
+        "not" => {
+            if args.len() != 1 {
+                return Err("not requires exactly 1 argument".to_string());
+            }
+            Ok(Value::Bool(!is_truthy(&args[0])))
+        }
+        "display" => {
+            if args.len() != 1 {
+                return Err("display requires exactly 1 argument".to_string());
+            }
+            match &args[0] {
+                Value::Str(s) => print!("{}", s),
+                other => print!("{}", other),
+            }
+            Ok(Value::Nil)
+        }
+        "newline" => {
+            println!();
+            Ok(Value::Nil)
+        }
         _ => Err(format!("Unknown builtin function: {}", name)),
     }
 }
@@ -625,11 +671,80 @@ where
     }
 }
 
+fn builtin_car(args: &[Value]) -> Result<Value, String> {
+    if args.len() != 1 {
+        return Err("car requires exactly 1 argument".to_string());
+    }
+    match &args[0] {
+        Value::List(elems) if !elems.is_empty() => Ok(elems[0].clone()),
+        _ => Err("car: argument must be a non-empty list".to_string()),
+    }
+}
+
+fn builtin_cdr(args: &[Value]) -> Result<Value, String> {
+    if args.len() != 1 {
+        return Err("cdr requires exactly 1 argument".to_string());
+    }
+    match &args[0] {
+        Value::List(elems) if !elems.is_empty() => {
+            if elems.len() == 1 {
+                Ok(Value::Nil)
+            } else {
+                Ok(Value::List(elems[1..].to_vec()))
+            }
+        }
+        _ => Err("cdr: argument must be a non-empty list".to_string()),
+    }
+}
+
+fn builtin_cons(args: &[Value]) -> Result<Value, String> {
+    if args.len() != 2 {
+        return Err("cons requires exactly 2 arguments".to_string());
+    }
+    match &args[1] {
+        Value::List(elems) => {
+            let mut new_list = vec![args[0].clone()];
+            new_list.extend(elems.iter().cloned());
+            Ok(Value::List(new_list))
+        }
+        Value::Nil => Ok(Value::List(vec![args[0].clone()])),
+        _ => Ok(Value::List(vec![args[0].clone(), args[1].clone()])),
+    }
+}
+
+fn builtin_eq(args: &[Value]) -> Result<Value, String> {
+    if args.len() != 2 {
+        return Err("eq? requires exactly 2 arguments".to_string());
+    }
+    let result = match (&args[0], &args[1]) {
+        (Value::Symbol(a), Value::Symbol(b)) => a == b,
+        (Value::Number(a), Value::Number(b)) => a == b,
+        (Value::Bool(a), Value::Bool(b)) => a == b,
+        (Value::Nil, Value::Nil) => true,
+        _ => false,
+    };
+    Ok(Value::Bool(result))
+}
+
+fn builtin_equal(args: &[Value]) -> Result<Value, String> {
+    if args.len() != 2 {
+        return Err("equal? requires exactly 2 arguments".to_string());
+    }
+    Ok(Value::Bool(args[0] == args[1]))
+}
+
+// ===== グローバル環境 =====
+
 fn make_global_env() -> EnvRef {
     let env = Env::new();
     let builtins = vec![
         "+", "-", "*", "/",
         "=", "<", ">", "<=", ">=",
+        "car", "cdr", "cons", "list",
+        "null?", "pair?", "number?", "string?",
+        "boolean?", "symbol?", "procedure?",
+        "eq?", "equal?", "not",
+        "display", "newline",
     ];
     for name in builtins {
         env.borrow_mut()
@@ -638,35 +753,105 @@ fn make_global_env() -> EnvRef {
     env
 }
 
+// ===== REPL（Chapter 11） =====
+
+fn run(input: &str, env: &EnvRef) -> Result<Value, String> {
+    let tokens = tokenize(input)?;
+    let exprs = parse_all(&tokens)?;
+
+    let mut result = Value::Nil;
+    for expr in &exprs {
+        result = eval(expr, env)?;
+    }
+    Ok(result)
+}
+
+/// 入力が完結しているか、トークンレベルで判定する。
+/// tokenize が成功し、カッコの深さが 0 以下なら入力完了。
+/// tokenize が失敗した場合（未閉じ文字列など）は未完了と見なす。
+fn is_ready(input: &str) -> bool {
+    match tokenize(input) {
+        Ok(tokens) => {
+            let depth: i32 = tokens.iter().map(|t| match t {
+                Token::LParen => 1,
+                Token::RParen => -1,
+                _ => 0,
+            }).sum();
+            depth <= 0
+        }
+        Err(_) => false,
+    }
+}
+
 fn main() {
     let env = make_global_env();
 
-    let programs = vec![
-        "(+ 1 2 3)",
-        "(* 2 (+ 3 4))",
-        "(def x 42)",
-        "x",
-        "(def (square n) (* n n))",
-        "(square 7)",
-        r#"(if #t "yes" "no")"#,
-        "(def (factorial n) (if (<= n 1) 1 (* n (factorial (- n 1)))))",
-        "(factorial 10)",
-    ];
+    println!("mini-scheme v0.1.0");
+    println!("Type (exit) to quit.\n");
 
-    for input in programs {
-        match tokenize(input) {
-            Ok(tokens) => match parse_all(&tokens) {
-                Ok(exprs) => {
-                    for expr in &exprs {
-                        match eval(expr, &env) {
-                            Ok(val) => println!("{} => {}", input, val),
-                            Err(e) => println!("{} => Error: {}", input, e),
+    let mut buffer = String::new();
+
+    loop {
+        if buffer.is_empty() {
+            print!("mini> ");
+        } else {
+            print!("...   ");
+        }
+        io::stdout().flush().unwrap();
+
+        let mut line = String::new();
+        match io::stdin().read_line(&mut line) {
+            Ok(0) => {
+                println!("\nBye!");
+                break;
+            }
+            Ok(_) => {
+                buffer.push_str(&line);
+
+                if buffer.trim() == "(exit)" {
+                    println!("Bye!");
+                    break;
+                }
+
+                if !is_ready(&buffer) {
+                    continue;
+                }
+
+                let input = buffer.trim().to_string();
+                buffer.clear();
+
+                if input.is_empty() {
+                    continue;
+                }
+
+                let tokens = match tokenize(&input) {
+                    Ok(t) => t,
+                    Err(e) => {
+                        println!("Error: {}", e);
+                        continue;
+                    }
+                };
+                let exprs = match parse_all(&tokens) {
+                    Ok(e) => e,
+                    Err(e) => {
+                        println!("Error: {}", e);
+                        continue;
+                    }
+                };
+                for expr in &exprs {
+                    match eval(expr, &env) {
+                        Ok(val) => println!("{}", val),
+                        Err(e) => {
+                            println!("Error: {}", e);
+                            break;
                         }
                     }
                 }
-                Err(e) => println!("{} => Parse error: {}", input, e),
-            },
-            Err(e) => println!("{} => Tokenize error: {}", input, e),
+            }
+            Err(e) => {
+                println!("Read error: {}", e);
+                break;
+            }
         }
     }
 }

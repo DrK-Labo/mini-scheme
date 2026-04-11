@@ -1,10 +1,10 @@
-// src/main.rs — Chapter 9: 組み込み関数
+// src/main.rs — Chapter 9: クロージャ
 
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 
-// ===== トークン（Chapter 5） =====
+// ===== トークン（Chapter 6） =====
 
 #[derive(Debug, Clone, PartialEq)]
 enum Token {
@@ -17,7 +17,7 @@ enum Token {
     Quote,
 }
 
-// ===== S式 / 値（Chapter 6-7） =====
+// ===== S式 / 値（Chapter 7-8） =====
 
 #[derive(Debug, Clone)]
 enum Value {
@@ -81,7 +81,7 @@ impl std::fmt::Display for Value {
     }
 }
 
-// ===== 環境（Chapter 7） =====
+// ===== 環境（Chapter 8） =====
 
 #[derive(Debug, Clone)]
 struct Env {
@@ -121,7 +121,7 @@ impl Env {
     }
 }
 
-// ===== 字句解析（Chapter 5） =====
+// ===== 字句解析（Chapter 6） =====
 
 fn tokenize(input: &str) -> Result<Vec<Token>, String> {
     let mut tokens = Vec::new();
@@ -242,7 +242,7 @@ fn is_digit_ahead(chars: &mut std::iter::Peekable<std::str::Chars>) -> bool {
     }
 }
 
-// ===== 構文解析（Chapter 6） =====
+// ===== 構文解析（Chapter 7） =====
 
 fn parse(tokens: &[Token]) -> Result<(Value, &[Token]), String> {
     if tokens.is_empty() {
@@ -304,7 +304,7 @@ fn parse_all(tokens: &[Token]) -> Result<Vec<Value>, String> {
     Ok(results)
 }
 
-// ===== 評価器（Chapter 7） =====
+// ===== 評価器（Chapter 8） =====
 
 fn eval(expr: &Value, env: &EnvRef) -> Result<Value, String> {
     match expr {
@@ -587,49 +587,6 @@ fn apply_builtin(name: &str, args: &[Value]) -> Result<Value, String> {
         ">" => compare_op(args, |a, b| a > b),
         "<=" => compare_op(args, |a, b| a <= b),
         ">=" => compare_op(args, |a, b| a >= b),
-        "car" => builtin_car(args),
-        "cdr" => builtin_cdr(args),
-        "cons" => builtin_cons(args),
-        "list" => Ok(if args.is_empty() {
-            Value::Nil
-        } else {
-            Value::List(args.to_vec())
-        }),
-        "null?" => Ok(Value::Bool(matches!(args.first(), Some(Value::Nil)))),
-        "pair?" => Ok(Value::Bool(matches!(
-            args.first(),
-            Some(Value::List(v)) if !v.is_empty()
-        ))),
-        "number?" => Ok(Value::Bool(matches!(args.first(), Some(Value::Number(_))))),
-        "string?" => Ok(Value::Bool(matches!(args.first(), Some(Value::Str(_))))),
-        "boolean?" => Ok(Value::Bool(matches!(args.first(), Some(Value::Bool(_))))),
-        "symbol?" => Ok(Value::Bool(matches!(args.first(), Some(Value::Symbol(_))))),
-        "procedure?" => Ok(Value::Bool(matches!(
-            args.first(),
-            Some(Value::Closure { .. }) | Some(Value::BuiltinFunc(_))
-        ))),
-        "eq?" => builtin_eq(args),
-        "equal?" => builtin_equal(args),
-        "not" => {
-            if args.len() != 1 {
-                return Err("not requires exactly 1 argument".to_string());
-            }
-            Ok(Value::Bool(!is_truthy(&args[0])))
-        }
-        "display" => {
-            if args.len() != 1 {
-                return Err("display requires exactly 1 argument".to_string());
-            }
-            match &args[0] {
-                Value::Str(s) => print!("{}", s),
-                other => print!("{}", other),
-            }
-            Ok(Value::Nil)
-        }
-        "newline" => {
-            println!();
-            Ok(Value::Nil)
-        }
         _ => Err(format!("Unknown builtin function: {}", name)),
     }
 }
@@ -668,78 +625,11 @@ where
     }
 }
 
-fn builtin_car(args: &[Value]) -> Result<Value, String> {
-    if args.len() != 1 {
-        return Err("car requires exactly 1 argument".to_string());
-    }
-    match &args[0] {
-        Value::List(elems) if !elems.is_empty() => Ok(elems[0].clone()),
-        _ => Err("car: argument must be a non-empty list".to_string()),
-    }
-}
-
-fn builtin_cdr(args: &[Value]) -> Result<Value, String> {
-    if args.len() != 1 {
-        return Err("cdr requires exactly 1 argument".to_string());
-    }
-    match &args[0] {
-        Value::List(elems) if !elems.is_empty() => {
-            if elems.len() == 1 {
-                Ok(Value::Nil)
-            } else {
-                Ok(Value::List(elems[1..].to_vec()))
-            }
-        }
-        _ => Err("cdr: argument must be a non-empty list".to_string()),
-    }
-}
-
-fn builtin_cons(args: &[Value]) -> Result<Value, String> {
-    if args.len() != 2 {
-        return Err("cons requires exactly 2 arguments".to_string());
-    }
-    match &args[1] {
-        Value::List(elems) => {
-            let mut new_list = vec![args[0].clone()];
-            new_list.extend(elems.iter().cloned());
-            Ok(Value::List(new_list))
-        }
-        Value::Nil => Ok(Value::List(vec![args[0].clone()])),
-        _ => Ok(Value::List(vec![args[0].clone(), args[1].clone()])),
-    }
-}
-
-fn builtin_eq(args: &[Value]) -> Result<Value, String> {
-    if args.len() != 2 {
-        return Err("eq? requires exactly 2 arguments".to_string());
-    }
-    let result = match (&args[0], &args[1]) {
-        (Value::Symbol(a), Value::Symbol(b)) => a == b,
-        (Value::Number(a), Value::Number(b)) => a == b,
-        (Value::Bool(a), Value::Bool(b)) => a == b,
-        (Value::Nil, Value::Nil) => true,
-        _ => false,
-    };
-    Ok(Value::Bool(result))
-}
-
-fn builtin_equal(args: &[Value]) -> Result<Value, String> {
-    if args.len() != 2 {
-        return Err("equal? requires exactly 2 arguments".to_string());
-    }
-    Ok(Value::Bool(args[0] == args[1]))
-}
-
 fn make_global_env() -> EnvRef {
     let env = Env::new();
     let builtins = vec![
         "+", "-", "*", "/",
         "=", "<", ">", "<=", ">=",
-        "car", "cdr", "cons", "list",
-        "null?", "pair?", "number?", "string?",
-        "boolean?", "symbol?", "procedure?",
-        "eq?", "equal?", "not",
-        "display", "newline",
     ];
     for name in builtins {
         env.borrow_mut()
@@ -752,16 +642,14 @@ fn main() {
     let env = make_global_env();
 
     let programs = vec![
-        "(car '(1 2 3))",
-        "(cdr '(1 2 3))",
-        "(cons 0 '(1 2 3))",
-        "(null? '())",
-        "(number? 42)",
-        r#"(string? "hello")"#,
-        "(def (my-map f lst) (if (null? lst) '() (cons (f (car lst)) (my-map f (cdr lst)))))",
-        "(my-map (lambda (x) (* x x)) '(1 2 3 4 5))",
-        "(def (my-filter pred lst) (cond ((null? lst) '()) ((pred (car lst)) (cons (car lst) (my-filter pred (cdr lst)))) (else (my-filter pred (cdr lst)))))",
-        "(my-filter (lambda (x) (> x 3)) '(1 2 3 4 5))",
+        "(def (make-adder n) (lambda (x) (+ n x)))",
+        "(def add5 (make-adder 5))",
+        "(add5 3)",
+        "(def (make-counter) (let ((count 0)) (lambda () (set! count (+ count 1)) count)))",
+        "(def c (make-counter))",
+        "(c)",
+        "(c)",
+        "(c)",
     ];
 
     for input in programs {

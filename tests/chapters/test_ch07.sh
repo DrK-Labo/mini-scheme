@@ -1,5 +1,5 @@
 #!/bin/bash
-# test_ch07.sh — Chapter 7: 評価器 のテスト
+# test_ch07.sh — Chapter 7: 構文解析 のテスト
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJ_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
@@ -19,16 +19,15 @@ check() {
     fi
 }
 
-echo "=== Chapter 7: Evaluator ==="
+echo "=== Chapter 7: Parser ==="
 rustc "$SRC" -o "$TMPDIR/ch07" 2>/dev/null
 OUTPUT=$("$TMPDIR/ch07")
 
-check "addition"          '(+ 1 2 3) => 6'
-check "nested expr"       '(* 2 (+ 3 4)) => 14'
-check "def variable"      'x => 42'
-check "def function"      '(square 7) => 49'
-check "if expression"     '(if #t "yes" "no") => "yes"'
-check "factorial"         '(factorial 10) => 3628800'
+check "simple list"        'Parsed: (+ 1 2)'
+check "nested def"         'Parsed: (def (square x) (* x x))'
+check "quote sugar"        'Parsed: (quote (1 2 3))'
+check "nested expr"        'Parsed: (+ 1 (* 2 3))'
+check "empty list → Nil"   'Parsed: ()'
 
 echo "  $PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ]

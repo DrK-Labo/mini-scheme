@@ -8,7 +8,7 @@ echo
 
 TOTAL_PASS=0; TOTAL_FAIL=0
 
-for ch in 05 06 07 08 09 10; do
+for ch in 06 07 08 09 10 11; do
     if bash "$SCRIPT_DIR/test_ch${ch}.sh"; then
         TOTAL_PASS=$((TOTAL_PASS + 1))
     else

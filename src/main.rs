@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use std::io::{self, Write};
 use std::rc::Rc;
 
-// ===== トークン（Chapter 5） =====
+// ===== トークン（Chapter 6） =====
 
 #[derive(Debug, Clone, PartialEq)]
 enum Token {
@@ -19,7 +19,7 @@ enum Token {
     Dot,
 }
 
-// ===== S式 / 値（Chapter 6-7） =====
+// ===== S式 / 値（Chapter 7-8） =====
 
 #[derive(Debug, Clone)]
 enum Value {
@@ -96,7 +96,7 @@ impl std::fmt::Display for Value {
     }
 }
 
-// ===== 環境（Chapter 7） =====
+// ===== 環境（Chapter 8） =====
 
 #[derive(Debug, Clone)]
 struct Env {
@@ -136,7 +136,7 @@ impl Env {
     }
 }
 
-// ===== 字句解析（Chapter 5） =====
+// ===== 字句解析（Chapter 6） =====
 
 fn tokenize(input: &str) -> Result<Vec<Token>, String> {
     let mut tokens = Vec::new();
@@ -261,7 +261,7 @@ fn is_digit_ahead(chars: &mut std::iter::Peekable<std::str::Chars>) -> bool {
     }
 }
 
-// ===== 構文解析（Chapter 6） =====
+// ===== 構文解析（Chapter 7） =====
 
 fn parse(tokens: &[Token]) -> Result<(Value, &[Token]), String> {
     if tokens.is_empty() {
@@ -352,7 +352,7 @@ fn parse_all(tokens: &[Token]) -> Result<Vec<Value>, String> {
     Ok(results)
 }
 
-// ===== 評価器（Chapter 7-9） =====
+// ===== 評価器（Chapter 8-10） =====
 
 fn eval(expr: &Value, env: &EnvRef) -> Result<Value, String> {
     match expr {
@@ -610,7 +610,7 @@ fn apply_func(func: &Value, args: &[Value]) -> Result<Value, String> {
     }
 }
 
-// ===== 組み込み関数（Chapter 9） =====
+// ===== 組み込み関数（Chapter 10） =====
 
 fn apply_builtin(name: &str, args: &[Value]) -> Result<Value, String> {
     match name {
@@ -827,7 +827,7 @@ fn make_global_env() -> EnvRef {
     env
 }
 
-// ===== REPL（Chapter 10） =====
+// ===== REPL（Chapter 11） =====
 
 fn run(input: &str, env: &EnvRef) -> Result<Value, String> {
     let tokens = tokenize(input)?;

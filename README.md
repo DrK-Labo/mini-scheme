@@ -7,7 +7,7 @@
 | ファイル | 説明 |
 |---|---|
 | [Cargo.toml](Cargo.toml) | Rustプロジェクト設定 |
-| [src/main.rs](src/main.rs) | 完成版インタプリタ（Chapter 5〜10 の全コードを統合） |
+| [src/main.rs](src/main.rs) | 完成版インタプリタ（Chapter 6〜11 の全コードを統合） |
 | [mini-eval.scm](mini-eval.scm) | Schemeで書かれたSchemeインタプリタ — メタ循環評価器（Chapter 4） |
 
 ### 章ごとのコードスナップショット
@@ -17,12 +17,12 @@
 | ディレクトリ | 対応する章 | 内容 |
 |---|---|---|
 | [chapters/ch04/mini-eval.scm](chapters/ch04/mini-eval.scm) | Chapter 4: メタ循環評価器 | SchemeによるSchemeインタプリタ |
-| [chapters/ch05/main.rs](chapters/ch05/main.rs) | Chapter 5: 字句解析 | トークナイザ（Lexer） |
-| [chapters/ch06/main.rs](chapters/ch06/main.rs) | Chapter 6: 構文解析 | パーサー（Parser）+ Lexer |
-| [chapters/ch07/main.rs](chapters/ch07/main.rs) | Chapter 7: 評価器 | Evaluator + 環境 + 特殊形式 |
-| [chapters/ch08/main.rs](chapters/ch08/main.rs) | Chapter 8: 関数とクロージャ | Lambda + レキシカルスコープ |
-| [chapters/ch09/main.rs](chapters/ch09/main.rs) | Chapter 9: 組み込み関数 | car/cdr/cons/算術/比較/型述語 |
-| [chapters/ch10/main.rs](chapters/ch10/main.rs) | Chapter 10: REPL | 対話的実行環境の完成 |
+| [chapters/ch06/main.rs](chapters/ch06/main.rs) | Chapter 6: 字句解析 | トークナイザ（Lexer） |
+| [chapters/ch07/main.rs](chapters/ch07/main.rs) | Chapter 7: 構文解析 | パーサー（Parser）+ Lexer |
+| [chapters/ch08/main.rs](chapters/ch08/main.rs) | Chapter 8: 評価器 | Evaluator + 環境 + 特殊形式 |
+| [chapters/ch09/main.rs](chapters/ch09/main.rs) | Chapter 9: 関数とクロージャ | Lambda + レキシカルスコープ |
+| [chapters/ch10/main.rs](chapters/ch10/main.rs) | Chapter 10: 組み込み関数 | car/cdr/cons/算術/比較/型述語 |
+| [chapters/ch11/main.rs](chapters/ch11/main.rs) | Chapter 11: REPL | 対話的実行環境の完成 |
 
 ### その他
 
@@ -80,7 +80,7 @@ mini> ((make-adder 5) 100)
 |------|--------|--------|------|
 | ユニットテスト | `src/main.rs` 末尾 | 82個 | トークナイザ、パーサー、評価器、組み込み関数、エラー処理 |
 | 統合テスト | `tests/integration.rs` | 9個 | REPLバイナリの起動・入出力・終了 |
-| 章スナップショットテスト | `tests/chapters/test_ch05.sh` 〜 `test_ch10.sh` | 各章数件 | 各章のコードが正しくビルド・実行できるか |
+| 章スナップショットテスト | `tests/chapters/test_ch06.sh` 〜 `test_ch11.sh` | 各章数件 | 各章のコードが正しくビルド・実行できるか |
 | Schemeテスト | `tests/scheme/test_eval.scm` | 26個 | メタ循環評価器（mini-eval.scm）の動作検証 |
 
 ### テストの実行
@@ -99,7 +99,7 @@ bash tests/scheme/run_scheme_tests.sh
 bash run_tests.sh
 ```
 
-ユニットテストは `src/main.rs` のファイル末尾に `#[cfg(test)]` で配置しています。これはRustの標準的な慣習で、テストコードは `cargo test` 実行時にだけコンパイルされ、本番バイナリには含まれません。テストを含まない実装コードは `chapters/ch10/main.rs` を参照してください。
+ユニットテストは `src/main.rs` のファイル末尾に `#[cfg(test)]` で配置しています。これはRustの標準的な慣習で、テストコードは `cargo test` 実行時にだけコンパイルされ、本番バイナリには含まれません。テストを含まない実装コードは `chapters/ch11/main.rs` を参照してください。
 
 テストの書き方の詳細は、書籍の **Appendix D: テストの書き方** を参照してください。
 

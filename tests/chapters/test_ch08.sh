@@ -1,5 +1,5 @@
 #!/bin/bash
-# test_ch08.sh — Chapter 8: 関数とクロージャ のテスト
+# test_ch08.sh — Chapter 8: 評価器 のテスト
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJ_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
@@ -19,15 +19,16 @@ check() {
     fi
 }
 
-echo "=== Chapter 8: Lambda & Closure ==="
+echo "=== Chapter 8: Evaluator ==="
 rustc "$SRC" -o "$TMPDIR/ch08" 2>/dev/null
 OUTPUT=$("$TMPDIR/ch08")
 
-check "make-adder def"     'make-adder'
-check "closure call"       '(add5 3) => 8'
-check "counter 1"          '(c) => 1'
-check "counter 2"          '(c) => 2'
-check "counter 3"          '(c) => 3'
+check "addition"          '(+ 1 2 3) => 6'
+check "nested expr"       '(* 2 (+ 3 4)) => 14'
+check "def variable"      'x => 42'
+check "def function"      '(square 7) => 49'
+check "if expression"     '(if #t "yes" "no") => "yes"'
+check "factorial"         '(factorial 10) => 3628800'
 
 echo "  $PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ]

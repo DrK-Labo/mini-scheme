@@ -1,5 +1,5 @@
 #!/bin/bash
-# test_ch10.sh — Chapter 10: REPL のテスト
+# test_ch10.sh — Chapter 10: 組み込み関数 のテスト
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJ_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
@@ -19,40 +19,19 @@ check() {
     fi
 }
 
-echo "=== Chapter 10: REPL ==="
+echo "=== Chapter 10: Builtins ==="
 rustc "$SRC" -o "$TMPDIR/ch10" 2>/dev/null
+OUTPUT=$("$TMPDIR/ch10")
 
-# テスト1: 基本的な算術
-OUTPUT=$(echo '(+ 1 2 3)
-(exit)' | "$TMPDIR/ch10")
-check "arithmetic"  "6"
-
-# テスト2: def + 呼び出し
-OUTPUT=$(echo '(def (square x) (* x x))
-(square 7)
-(exit)' | "$TMPDIR/ch10")
-check "def and call"  "49"
-
-# テスト3: 複数行入力
-OUTPUT=$(echo '(+ 1
-   2
-   3)
-(exit)' | "$TMPDIR/ch10")
-check "multiline"  "6"
-
-# テスト4: exit で Bye!
-OUTPUT=$(echo '(exit)' | "$TMPDIR/ch10")
-check "exit message"  "Bye!"
-
-# テスト5: EOF で Bye!
-OUTPUT=$(echo -n "" | "$TMPDIR/ch10")
-check "eof message"  "Bye!"
-
-# テスト6: factorial
-OUTPUT=$(echo '(def (factorial n) (if (= n 0) 1 (* n (factorial (- n 1)))))
-(factorial 10)
-(exit)' | "$TMPDIR/ch10")
-check "factorial"  "3628800"
+check "car"              "(car '(1 2 3)) => 1"
+check "cdr"              "(cdr '(1 2 3)) => (2 3)"
+check "cons"             "(cons 0 '(1 2 3)) => (0 1 2 3)"
+check "null?"            "(null? '()) => #t"
+check "number?"          "(number? 42) => #t"
+check "string?"          '(string? "hello") => #t'
+check "user map"         '(my-map (lambda (x) (* x x))'
+check "map result"       '=> (1 4 9 16 25)'
+check "user filter"      '=> (4 5)'
 
 echo "  $PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ]

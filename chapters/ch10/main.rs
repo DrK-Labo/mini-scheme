@@ -1,11 +1,10 @@
-// src/main.rs — mini-scheme: Scheme interpreter in Rust
+// src/main.rs — Chapter 10: 組み込み関数
 
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::io::{self, Write};
 use std::rc::Rc;
 
-// ===== トークン（Chapter 5） =====
+// ===== トークン（Chapter 6） =====
 
 #[derive(Debug, Clone, PartialEq)]
 enum Token {
@@ -18,7 +17,7 @@ enum Token {
     Quote,
 }
 
-// ===== S式 / 値（Chapter 6-7） =====
+// ===== S式 / 値（Chapter 7-8） =====
 
 #[derive(Debug, Clone)]
 enum Value {
@@ -82,7 +81,7 @@ impl std::fmt::Display for Value {
     }
 }
 
-// ===== 環境（Chapter 7） =====
+// ===== 環境（Chapter 8） =====
 
 #[derive(Debug, Clone)]
 struct Env {
@@ -122,7 +121,7 @@ impl Env {
     }
 }
 
-// ===== 字句解析（Chapter 5） =====
+// ===== 字句解析（Chapter 6） =====
 
 fn tokenize(input: &str) -> Result<Vec<Token>, String> {
     let mut tokens = Vec::new();
@@ -243,7 +242,7 @@ fn is_digit_ahead(chars: &mut std::iter::Peekable<std::str::Chars>) -> bool {
     }
 }
 
-// ===== 構文解析（Chapter 6） =====
+// ===== 構文解析（Chapter 7） =====
 
 fn parse(tokens: &[Token]) -> Result<(Value, &[Token]), String> {
     if tokens.is_empty() {
@@ -305,7 +304,7 @@ fn parse_all(tokens: &[Token]) -> Result<Vec<Value>, String> {
     Ok(results)
 }
 
-// ===== 評価器（Chapter 7-9） =====
+// ===== 評価器（Chapter 8） =====
 
 fn eval(expr: &Value, env: &EnvRef) -> Result<Value, String> {
     match expr {
@@ -560,8 +559,6 @@ fn apply_func(func: &Value, args: &[Value]) -> Result<Value, String> {
     }
 }
 
-// ===== 組み込み関数（Chapter 9） =====
-
 fn apply_builtin(name: &str, args: &[Value]) -> Result<Value, String> {
     match name {
         "+" => numeric_op(args, |a, b| a + b, 0.0),
@@ -733,8 +730,6 @@ fn builtin_equal(args: &[Value]) -> Result<Value, String> {
     Ok(Value::Bool(args[0] == args[1]))
 }
 
-// ===== グローバル環境 =====
-
 fn make_global_env() -> EnvRef {
     let env = Env::new();
     let builtins = vec![
@@ -753,105 +748,36 @@ fn make_global_env() -> EnvRef {
     env
 }
 
-// ===== REPL（Chapter 10） =====
-
-fn run(input: &str, env: &EnvRef) -> Result<Value, String> {
-    let tokens = tokenize(input)?;
-    let exprs = parse_all(&tokens)?;
-
-    let mut result = Value::Nil;
-    for expr in &exprs {
-        result = eval(expr, env)?;
-    }
-    Ok(result)
-}
-
-/// 入力が完結しているか、トークンレベルで判定する。
-/// tokenize が成功し、カッコの深さが 0 以下なら入力完了。
-/// tokenize が失敗した場合（未閉じ文字列など）は未完了と見なす。
-fn is_ready(input: &str) -> bool {
-    match tokenize(input) {
-        Ok(tokens) => {
-            let depth: i32 = tokens.iter().map(|t| match t {
-                Token::LParen => 1,
-                Token::RParen => -1,
-                _ => 0,
-            }).sum();
-            depth <= 0
-        }
-        Err(_) => false,
-    }
-}
-
 fn main() {
     let env = make_global_env();
 
-    println!("mini-scheme v0.1.0");
-    println!("Type (exit) to quit.\n");
+    let programs = vec![
+        "(car '(1 2 3))",
+        "(cdr '(1 2 3))",
+        "(cons 0 '(1 2 3))",
+        "(null? '())",
+        "(number? 42)",
+        r#"(string? "hello")"#,
+        "(def (my-map f lst) (if (null? lst) '() (cons (f (car lst)) (my-map f (cdr lst)))))",
+        "(my-map (lambda (x) (* x x)) '(1 2 3 4 5))",
+        "(def (my-filter pred lst) (cond ((null? lst) '()) ((pred (car lst)) (cons (car lst) (my-filter pred (cdr lst)))) (else (my-filter pred (cdr lst)))))",
+        "(my-filter (lambda (x) (> x 3)) '(1 2 3 4 5))",
+    ];
 
-    let mut buffer = String::new();
-
-    loop {
-        if buffer.is_empty() {
-            print!("mini> ");
-        } else {
-            print!("...   ");
-        }
-        io::stdout().flush().unwrap();
-
-        let mut line = String::new();
-        match io::stdin().read_line(&mut line) {
-            Ok(0) => {
-                println!("\nBye!");
-                break;
-            }
-            Ok(_) => {
-                buffer.push_str(&line);
-
-                if buffer.trim() == "(exit)" {
-                    println!("Bye!");
-                    break;
-                }
-
-                if !is_ready(&buffer) {
-                    continue;
-                }
-
-                let input = buffer.trim().to_string();
-                buffer.clear();
-
-                if input.is_empty() {
-                    continue;
-                }
-
-                let tokens = match tokenize(&input) {
-                    Ok(t) => t,
-                    Err(e) => {
-                        println!("Error: {}", e);
-                        continue;
-                    }
-                };
-                let exprs = match parse_all(&tokens) {
-                    Ok(e) => e,
-                    Err(e) => {
-                        println!("Error: {}", e);
-                        continue;
-                    }
-                };
-                for expr in &exprs {
-                    match eval(expr, &env) {
-                        Ok(val) => println!("{}", val),
-                        Err(e) => {
-                            println!("Error: {}", e);
-                            break;
+    for input in programs {
+        match tokenize(input) {
+            Ok(tokens) => match parse_all(&tokens) {
+                Ok(exprs) => {
+                    for expr in &exprs {
+                        match eval(expr, &env) {
+                            Ok(val) => println!("{} => {}", input, val),
+                            Err(e) => println!("{} => Error: {}", input, e),
                         }
                     }
                 }
-            }
-            Err(e) => {
-                println!("Read error: {}", e);
-                break;
-            }
+                Err(e) => println!("{} => Parse error: {}", input, e),
+            },
+            Err(e) => println!("{} => Tokenize error: {}", input, e),
         }
     }
 }
