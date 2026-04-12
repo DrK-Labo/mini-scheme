@@ -25,7 +25,7 @@ enum Value {
     Nil,
 }
 
-// ===== 字句解析（Chapter 5） =====
+// ===== 字句解析（Chapter 6） =====
 
 fn tokenize(input: &str) -> Result<Vec<Token>, String> {
     let mut tokens = Vec::new();
@@ -150,7 +150,7 @@ fn is_digit_ahead(chars: &mut std::iter::Peekable<std::str::Chars>) -> bool {
     }
 }
 
-// ===== 構文解析（Chapter 6） =====
+// ===== 構文解析（Chapter 7） =====
 
 fn parse(tokens: &[Token]) -> Result<(Value, &[Token]), String> {
     if tokens.is_empty() {

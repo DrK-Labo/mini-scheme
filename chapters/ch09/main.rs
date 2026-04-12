@@ -623,13 +623,6 @@ fn apply_builtin(name: &str, args: &[Value]) -> Result<Value, String> {
             if args.is_empty() {
                 return Err("/ requires at least 1 argument".to_string());
             }
-            for arg in &args[1..] {
-                if let Value::Number(n) = arg {
-                    if *n == 0.0 {
-                        return Err("Division by zero".to_string());
-                    }
-                }
-            }
             numeric_op(args, |a, b| a / b, 1.0)
         }
         "=" => compare_op(args, |a, b| a == b),

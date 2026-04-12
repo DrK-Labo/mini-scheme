@@ -648,19 +648,7 @@ fn apply_builtin(name: &str, args: &[Value]) -> Result<Value, String> {
         } else {
             Value::List(args.to_vec())
         }),
-        "pair?" => {
-            let result = match args.first() {
-                Some(Value::List(v)) if !v.is_empty() => true,
-                Some(Value::DottedList(..)) => true,
-                _ => false,
-            };
-            Ok(Value::Bool(result))
-        }
-        "list?" => Ok(Value::Bool(matches!(
-            args.first(),
-            Some(Value::List(_)) | Some(Value::Nil)
-        ))),
-        "null?" | "number?" | "string?"
+        "null?" | "pair?" | "list?" | "number?" | "string?"
         | "boolean?" | "symbol?" | "procedure?" => {
             if args.len() != 1 {
                 return Err(format!(
@@ -670,6 +658,9 @@ fn apply_builtin(name: &str, args: &[Value]) -> Result<Value, String> {
             let val = &args[0];
             let result = match name {
                 "null?" => matches!(val, Value::Nil),
+                "pair?" => matches!(val, Value::List(v) if !v.is_empty())
+                    || matches!(val, Value::DottedList(..)),
+                "list?" => matches!(val, Value::List(_) | Value::Nil),
                 "number?" => matches!(val, Value::Number(_)),
                 "string?" => matches!(val, Value::Str(_)),
                 "boolean?" => matches!(val, Value::Bool(_)),
