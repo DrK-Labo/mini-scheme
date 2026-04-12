@@ -863,7 +863,7 @@ fn is_ready(input: &str) -> bool {
 fn main() {
     let env = make_global_env();
 
-    println!("mini-scheme v0.1.0");
+    println!("mini-scheme v1.0.0");
     println!("Type (exit) to quit.\n");
 
     let mut buffer = String::new();

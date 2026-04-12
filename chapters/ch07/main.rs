@@ -174,14 +174,13 @@ fn parse(tokens: &[Token]) -> Result<(Value, &[Token]), String> {
                     if list.is_empty() {
                         return Err("Unexpected '.' at start of list".to_string());
                     }
-                    rest = &rest[1..]; // consume dot
+                    rest = &rest[1..];
                     let (tail, remaining) = parse(rest)?;
                     rest = remaining;
                     if rest.is_empty() || rest[0] != Token::RParen {
                         return Err("Expected ')' after dotted pair tail".to_string());
                     }
-                    rest = &rest[1..]; // consume ')'
-                    // normalization
+                    rest = &rest[1..];
                     return match tail {
                         Value::Nil => Ok((Value::List(list), rest)),
                         Value::List(mut elems) => {

@@ -871,7 +871,7 @@ fn eval_to_string(input: &str) -> Result<String, String> {
 fn main() {
     let env = make_global_env();
 
-    println!("mini-scheme v0.1.0");
+    println!("mini-scheme v{}", env!("CARGO_PKG_VERSION"));
     println!("Type (exit) to quit.\n");
 
     let mut buffer = String::new();

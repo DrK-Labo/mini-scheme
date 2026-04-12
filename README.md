@@ -1,6 +1,6 @@
 # mini-scheme
 
-書籍『Rustで作るSchemeインタプリタ — ソフトウェアサイエンスの真髄を体験する』の実装コードです。
+書籍『Rustで作るSchemeインタプリタ — Scheme言語の実装で学ぶ、Rustとソフトウェアサイエンス』の実装コードです。
 
 ## ファイル構成
 
@@ -41,7 +41,7 @@ cargo run
 ```
 
 ```
-mini-scheme v0.1.0
+mini-scheme v1.0.0
 Type (exit) to quit.
 
 mini> (+ 1 2 3)
@@ -62,7 +62,7 @@ Bye!
 gosh -l mini-eval.scm
 ```
 
-```scheme
+```
 gosh> (my-repl)
 mini> (+ 1 2 3)
 6
@@ -101,7 +101,7 @@ bash run_tests.sh
 
 ユニットテストは `src/main.rs` のファイル末尾に `#[cfg(test)]` で配置しています。これはRustの標準的な慣習で、テストコードは `cargo test` 実行時にだけコンパイルされ、本番バイナリには含まれません。テストを含まない実装コードは `chapters/ch11/main.rs` を参照してください。
 
-テストの書き方の詳細は、書籍の **Appendix D: テストの書き方** を参照してください。
+テストの書き方の詳細は、書籍の **Appendix D: GitHubリポジトリの利用とテストの書き方** を参照してください。
 
 ## ライセンス
 
