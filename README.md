@@ -81,12 +81,6 @@ Bye!
 | X | [@DrKLaboratory](https://x.com/DrKLaboratory) |
 | Zenn | [drk_laboratory](https://zenn.dev/drk_laboratory) |
 
-> ### 【期間限定】Kindle 無料キャンペーン
->
-> **2026年4月28日（火）16:00 〜 5月1日（金）16:00 JST** の72時間、本書を Kindle で無料ダウンロードできます。Kindle Unlimited 非会員の方も対象。GW の連休にコードを動かしながら読みたい方の積読候補にどうぞ。
->
-> [Amazon 商品ページ](https://www.amazon.co.jp/dp/B0GX2VM5W5)
-
 ## 章を追って読みたい方へ
 
 書籍を読みながら手を動かす場合、各章の終わり時点で動くコードが [`chapters/`](chapters/) に保存されています。章ごとにビルドして、その章までで何が動くかを確かめながら進める設計です。
