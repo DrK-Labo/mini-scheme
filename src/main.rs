@@ -414,6 +414,9 @@ fn eval_if(elems: &[Value], env: &EnvRef) -> Result<Value, String> {
 }
 
 fn eval_define(elems: &[Value], env: &EnvRef) -> Result<Value, String> {
+    if elems.len() < 2 {
+        return Err("def requires a name".to_string());
+    }
     match &elems[1] {
         Value::Symbol(name) => {
             if elems.len() != 3 {
@@ -539,9 +542,9 @@ fn eval_let(elems: &[Value], env: &EnvRef) -> Result<Value, String> {
     if elems.len() < 3 {
         return Err("let requires bindings and body".to_string());
     }
-    let bindings = match &elems[1] {
+    let bindings: &[Value] = match &elems[1] {
         Value::List(b) => b,
-        Value::Nil => return eval_begin_slice(&elems[2..], env),
+        Value::Nil => &[],
         _ => return Err("let: bindings must be a list".to_string()),
     };
 
@@ -626,7 +629,9 @@ fn apply_builtin(name: &str, args: &[Value]) -> Result<Value, String> {
             if args.is_empty() {
                 return Err("/ requires at least 1 argument".to_string());
             }
-            for arg in &args[1..] {
+            // (/ x) は 1 / x と解釈されるので、引数が1つならそれ自身が除数
+            let divisors = if args.len() == 1 { args } else { &args[1..] };
+            for arg in divisors {
                 if let Value::Number(n) = arg {
                     if *n == 0.0 {
                         return Err("Division by zero".to_string());
@@ -1169,6 +1174,17 @@ mod tests {
         assert!(eval_input("(/ 1 0)").is_err());
     }
 
+    #[test]
+    fn eval_div_unary() {
+        assert_eq!(eval_str("(/ 2)"), "0.5");
+    }
+
+    // 単項の (/ 0) は 1 / 0 なのでゼロ除算（JP-024 の回帰）
+    #[test]
+    fn eval_div_unary_by_zero() {
+        assert!(eval_input("(/ 0)").is_err());
+    }
+
     // ===== Evaluator: 比較 =====
 
     #[test]
@@ -1241,6 +1257,12 @@ mod tests {
             eval_program_str(&["(def (square n) (* n n))", "(square 5)"]),
             "25"
         );
+    }
+
+    // 名前のない (def) はエラーであってパニックではない（JP-016 の回帰）
+    #[test]
+    fn eval_def_without_name() {
+        assert!(eval_input("(def)").is_err());
     }
 
     // ===== Evaluator: lambda =====
@@ -1322,6 +1344,15 @@ mod tests {
     #[test]
     fn eval_let_empty_bindings() {
         assert_eq!(eval_str("(let () 42)"), "42");
+    }
+
+    // 束縛が空でも新しいスコープを作る。内側の def は外へ漏れない（JP-017 の回帰）
+    #[test]
+    fn eval_let_empty_bindings_scope() {
+        assert_eq!(
+            eval_program_str(&["(def x 1)", "(let () (def x 2))", "x"]),
+            "1"
+        );
     }
 
     // ===== Evaluator: and =====

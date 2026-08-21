@@ -413,6 +413,9 @@ fn eval_if(elems: &[Value], env: &EnvRef) -> Result<Value, String> {
 }
 
 fn eval_define(elems: &[Value], env: &EnvRef) -> Result<Value, String> {
+    if elems.len() < 2 {
+        return Err("def requires a name".to_string());
+    }
     match &elems[1] {
         Value::Symbol(name) => {
             if elems.len() != 3 {
@@ -538,9 +541,9 @@ fn eval_let(elems: &[Value], env: &EnvRef) -> Result<Value, String> {
     if elems.len() < 3 {
         return Err("let requires bindings and body".to_string());
     }
-    let bindings = match &elems[1] {
+    let bindings: &[Value] = match &elems[1] {
         Value::List(b) => b,
-        Value::Nil => return eval_begin_slice(&elems[2..], env),
+        Value::Nil => &[],
         _ => return Err("let: bindings must be a list".to_string()),
     };
 

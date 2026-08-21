@@ -414,6 +414,9 @@ fn eval_if(elems: &[Value], env: &EnvRef) -> Result<Value, String> {
 }
 
 fn eval_define(elems: &[Value], env: &EnvRef) -> Result<Value, String> {
+    if elems.len() < 2 {
+        return Err("def requires a name".to_string());
+    }
     match &elems[1] {
         Value::Symbol(name) => {
             if elems.len() != 3 {
@@ -539,9 +542,9 @@ fn eval_let(elems: &[Value], env: &EnvRef) -> Result<Value, String> {
     if elems.len() < 3 {
         return Err("let requires bindings and body".to_string());
     }
-    let bindings = match &elems[1] {
+    let bindings: &[Value] = match &elems[1] {
         Value::List(b) => b,
-        Value::Nil => return eval_begin_slice(&elems[2..], env),
+        Value::Nil => &[],
         _ => return Err("let: bindings must be a list".to_string()),
     };
 
@@ -626,7 +629,9 @@ fn apply_builtin(name: &str, args: &[Value]) -> Result<Value, String> {
             if args.is_empty() {
                 return Err("/ requires at least 1 argument".to_string());
             }
-            for arg in &args[1..] {
+            // (/ x) は 1 / x と解釈されるので、引数が1つならそれ自身が除数
+            let divisors = if args.len() == 1 { args } else { &args[1..] };
+            for arg in divisors {
                 if let Value::Number(n) = arg {
                     if *n == 0.0 {
                         return Err("Division by zero".to_string());
