@@ -66,11 +66,20 @@ fn repl_def_and_call() {
 }
 
 #[test]
-fn repl_nil_not_printed() {
-    // begin の結果が Nil のときは何も出力しない
+fn repl_nil_is_printed() {
+    // Nil は空リストとして表示する。(cdr '(1)) のような正当な結果を
+    // 握り潰さないため（2026-08-22。それ以前は非表示にしていた）
     let out = run_repl("(begin)\n(+ 1 1)\n(exit)\n");
     let results = extract_results(&out);
-    assert_eq!(results, vec!["2"]);
+    assert_eq!(results, vec!["()", "2"]);
+}
+
+#[test]
+fn repl_prints_empty_list_results() {
+    // 空リストを返す式の結果が見えること
+    let out = run_repl("(cdr '(1))\n(list)\n(exit)\n");
+    let results = extract_results(&out);
+    assert_eq!(results, vec!["()", "()"]);
 }
 
 #[test]

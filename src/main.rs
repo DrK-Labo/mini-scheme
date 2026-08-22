@@ -930,7 +930,6 @@ fn main() {
                 };
                 for expr in &exprs {
                     match eval(expr, &env) {
-                        Ok(Value::Nil) => {}
                         Ok(val) => println!("{}", val),
                         Err(e) => {
                             println!("Error: {}", e);
