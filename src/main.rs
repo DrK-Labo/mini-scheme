@@ -1178,7 +1178,7 @@ mod tests {
         assert_eq!(eval_str("(/ 2)"), "0.5");
     }
 
-    // 単項の (/ 0) は 1 / 0 なのでゼロ除算（JP-024 の回帰）
+    // 単項の (/ 0) は 1 / 0 なのでゼロ除算
     #[test]
     fn eval_div_unary_by_zero() {
         assert!(eval_input("(/ 0)").is_err());
@@ -1258,7 +1258,7 @@ mod tests {
         );
     }
 
-    // 名前のない (def) はエラーであってパニックではない（JP-016 の回帰）
+    // 名前のない (def) はエラーであってパニックではない
     #[test]
     fn eval_def_without_name() {
         assert!(eval_input("(def)").is_err());
@@ -1345,7 +1345,7 @@ mod tests {
         assert_eq!(eval_str("(let () 42)"), "42");
     }
 
-    // 束縛が空でも新しいスコープを作る。内側の def は外へ漏れない（JP-017 の回帰）
+    // 束縛が空でも新しいスコープを作る。内側の def は外へ漏れない
     #[test]
     fn eval_let_empty_bindings_scope() {
         assert_eq!(
