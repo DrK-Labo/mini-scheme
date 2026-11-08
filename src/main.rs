@@ -144,7 +144,7 @@ fn tokenize(input: &str) -> Result<Vec<Token>, String> {
 
     while let Some(&ch) = chars.peek() {
         match ch {
-            ' ' | '\t' | '\n' | '\r' => {
+            c if c.is_whitespace() => {
                 chars.next();
             }
             ';' => {
@@ -1035,6 +1035,24 @@ mod tests {
                 Token::RParen,
             ]
         );
+    }
+
+    #[test]
+    fn tokenize_unicode_whitespace() {
+        // 全角スペース・NBSP・垂直タブ・改ページも空白として読み飛ばす
+        for ws in ['\u{3000}', '\u{00A0}', '\u{000B}', '\u{000C}'] {
+            let tokens = tokenize(&format!("(+ 1{}2)", ws)).unwrap();
+            assert_eq!(
+                tokens,
+                vec![
+                    Token::LParen,
+                    Token::Symbol("+".to_string()),
+                    Token::Number(1.0),
+                    Token::Number(2.0),
+                    Token::RParen,
+                ]
+            );
+        }
     }
 
     #[test]

@@ -144,7 +144,7 @@ fn tokenize(input: &str) -> Result<Vec<Token>, String> {
 
     while let Some(&ch) = chars.peek() {
         match ch {
-            ' ' | '\t' | '\n' | '\r' => {
+            c if c.is_whitespace() => {
                 chars.next();
             }
             ';' => {
