@@ -1,3 +1,5 @@
+**日本語** | [English](https://github.com/DrK-Labo/mini-scheme/tree/v1.1-en)
+
 # mini-scheme
 
 > 約1,000行の Rust で書かれた、学習用の小さな Scheme インタプリタ
