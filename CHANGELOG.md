@@ -4,7 +4,7 @@ Change history of the source code repository for the book *Crafting a Scheme Int
 (the Japanese edition was published first).
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [v1.1-en]
+## [v1.1-en] - 2026-11-10
 
 The English-comment build that accompanies the English edition (version 1.1).
 The code is the same as on `main`; only the comments and documents differ.

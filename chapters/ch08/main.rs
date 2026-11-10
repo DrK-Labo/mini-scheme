@@ -20,7 +20,6 @@ enum Token {
 
 // ===== S-expressions / Values (Chapter 7-8) =====
 
-/// S-expression (Scheme value)
 #[derive(Debug, Clone)]
 enum Value {
     Number(f64),
@@ -49,7 +48,6 @@ impl PartialEq for Value {
             (Value::DottedList(a1, a2), Value::DottedList(b1, b2)) => a1 == b1 && a2 == b2,
             (Value::Nil, Value::Nil) => true,
             (Value::BuiltinFunc(a), Value::BuiltinFunc(b)) => a == b,
-            // Comparing closures always yields false
             _ => false,
         }
     }
@@ -108,7 +106,6 @@ struct Env {
 type EnvRef = Rc<RefCell<Env>>;
 
 impl Env {
-    /// Create a new empty environment (no parent)
     fn new() -> EnvRef {
         Rc::new(RefCell::new(Env {
             vars: HashMap::new(),
@@ -116,7 +113,6 @@ impl Env {
         }))
     }
 
-    /// Create a new environment with a given parent
     fn with_parent(parent: EnvRef) -> EnvRef {
         Rc::new(RefCell::new(Env {
             vars: HashMap::new(),
@@ -124,12 +120,10 @@ impl Env {
         }))
     }
 
-    /// Define a variable (used by def, let, letrec, etc.)
     fn define(&mut self, name: String, val: Value) {
         self.vars.insert(name, val);
     }
 
-    /// Look up a variable (walk the parent chain if not found)
     fn lookup(&self, name: &str) -> Result<Value, String> {
         if let Some(val) = self.vars.get(name) {
             Ok(val.clone())
@@ -257,6 +251,7 @@ where
     s
 }
 
+/// Looks one character ahead: is this `-` subtraction, or the sign of -7?
 fn is_digit_ahead(chars: &mut std::iter::Peekable<std::str::Chars>) -> bool {
     let mut clone = chars.clone();
     clone.next();
@@ -290,13 +285,14 @@ fn parse(tokens: &[Token]) -> Result<(Value, &[Token]), String> {
                     if list.is_empty() {
                         return Err("Unexpected '.' at start of list".to_string());
                     }
-                    rest = &rest[1..];
+                    rest = &rest[1..]; // consume '.'
                     let (tail, remaining) = parse(rest)?;
                     rest = remaining;
                     if rest.is_empty() || rest[0] != Token::RParen {
                         return Err("Expected ')' after dotted pair tail".to_string());
                     }
-                    rest = &rest[1..];
+                    rest = &rest[1..]; // consume ')'
+                    // normalize: (1 . (2 3)) is just (1 2 3)
                     return match tail {
                         Value::Nil => Ok((Value::List(list), rest)),
                         Value::List(mut elems) => {
@@ -359,24 +355,19 @@ fn parse_all(tokens: &[Token]) -> Result<Vec<Value>, String> {
 
 // ===== Evaluator (Chapter 8) =====
 
-/// Evaluate an S-expression
 fn eval(expr: &Value, env: &EnvRef) -> Result<Value, String> {
     match expr {
-        // Self-evaluating expressions
         Value::Number(_) | Value::Str(_) | Value::Bool(_) | Value::Nil => {
             Ok(expr.clone())
         }
 
-        // Symbol → look up its value in the environment
         Value::Symbol(name) => env.borrow().lookup(name),
 
-        // List → special form or function call
         Value::List(elems) => {
             if elems.is_empty() {
                 return Ok(Value::Nil);
             }
 
-            // If the head element is a symbol, check for special forms
             if let Value::Symbol(op) = &elems[0] {
                 match op.as_str() {
                     "quote" => eval_quote(elems),
@@ -395,12 +386,10 @@ fn eval(expr: &Value, env: &EnvRef) -> Result<Value, String> {
             }
         }
 
-        // Dotted pairs cannot be evaluated (exist only as data)
         Value::DottedList(..) => {
             Err("Cannot evaluate improper list (dotted pair)".to_string())
         }
 
-        // Closure and BuiltinFunc are returned as is
         Value::Closure { .. } | Value::BuiltinFunc(_) => Ok(expr.clone()),
     }
 }
@@ -435,7 +424,6 @@ fn eval_define(elems: &[Value], env: &EnvRef) -> Result<Value, String> {
         return Err("def requires a name".to_string());
     }
     match &elems[1] {
-        // (def x 10) — variable definition
         Value::Symbol(name) => {
             if elems.len() != 3 {
                 return Err("def requires a value".to_string());
@@ -444,7 +432,6 @@ fn eval_define(elems: &[Value], env: &EnvRef) -> Result<Value, String> {
             env.borrow_mut().define(name.clone(), val);
             Ok(Value::Symbol(name.clone()))
         }
-        // (def (f x) body...) — function definition (syntactic sugar)
         Value::List(name_and_params) => {
             if name_and_params.is_empty() {
                 return Err("def: empty function name".to_string());
@@ -503,6 +490,8 @@ fn eval_begin(elems: &[Value], env: &EnvRef) -> Result<Value, String> {
     Ok(result)
 }
 
+/// Like eval_begin, but for bodies that have no `begin` keyword to skip:
+/// the body of a matching cond clause, or of a let, arrives as a bare slice.
 fn eval_begin_slice(exprs: &[Value], env: &EnvRef) -> Result<Value, String> {
     let mut result = Value::Nil;
     for expr in exprs {
@@ -531,13 +520,15 @@ fn set_in_env(name: &str, val: Value, env: &EnvRef) -> Result<(), String> {
         Ok(())
     } else if let Some(parent) = &env_ref.parent {
         let parent = Rc::clone(parent);
-        drop(env_ref); // release the borrow before touching the parent
+        drop(env_ref);
         set_in_env(name, val, &parent)
     } else {
         Err(format!("set!: undefined variable: {}", name))
     }
 }
 
+/// A subset of standard cond: every clause needs a test and a body.
+/// Test-only clauses and `=>` are not supported; no match yields Nil.
 fn eval_cond(elems: &[Value], env: &EnvRef) -> Result<Value, String> {
     for clause in &elems[1..] {
         match clause {
@@ -577,7 +568,7 @@ fn eval_let(elems: &[Value], env: &EnvRef) -> Result<Value, String> {
                     Value::Symbol(s) => s.clone(),
                     _ => return Err("let: binding name must be a symbol".to_string()),
                 };
-                let val = eval(&pair[1], env)?; // evaluate in the original environment
+                let val = eval(&pair[1], env)?;
                 new_env.borrow_mut().define(name, val);
             }
             _ => return Err("let: invalid binding".to_string()),

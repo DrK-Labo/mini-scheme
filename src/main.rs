@@ -286,7 +286,7 @@ fn parse(tokens: &[Token]) -> Result<(Value, &[Token]), String> {
                     if list.is_empty() {
                         return Err("Unexpected '.' at start of list".to_string());
                     }
-                    rest = &rest[1..]; // consume dot
+                    rest = &rest[1..]; // consume '.'
                     let (tail, remaining) = parse(rest)?;
                     rest = remaining;
                     if rest.is_empty() || rest[0] != Token::RParen {

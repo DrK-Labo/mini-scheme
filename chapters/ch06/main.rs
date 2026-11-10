@@ -3,14 +3,14 @@
 /// Token types
 #[derive(Debug, Clone, PartialEq)]
 enum Token {
-    LParen,           // (
-    RParen,           // )
-    Number(f64),      // number
-    Str(String),      // string
-    Bool(bool),       // #t, #f
-    Symbol(String),   // symbol
-    Quote,            // '
-    Dot,              // .
+    LParen,
+    RParen,
+    Number(f64),
+    Str(String),
+    Bool(bool),
+    Symbol(String),
+    Quote,
+    Dot,
 }
 
 /// Break a string into a token sequence

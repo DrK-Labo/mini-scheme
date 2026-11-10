@@ -251,6 +251,7 @@ where
     s
 }
 
+/// Looks one character ahead: is this `-` subtraction, or the sign of -7?
 fn is_digit_ahead(chars: &mut std::iter::Peekable<std::str::Chars>) -> bool {
     let mut clone = chars.clone();
     clone.next();
@@ -284,13 +285,14 @@ fn parse(tokens: &[Token]) -> Result<(Value, &[Token]), String> {
                     if list.is_empty() {
                         return Err("Unexpected '.' at start of list".to_string());
                     }
-                    rest = &rest[1..];
+                    rest = &rest[1..]; // consume '.'
                     let (tail, remaining) = parse(rest)?;
                     rest = remaining;
                     if rest.is_empty() || rest[0] != Token::RParen {
                         return Err("Expected ')' after dotted pair tail".to_string());
                     }
-                    rest = &rest[1..];
+                    rest = &rest[1..]; // consume ')'
+                    // normalize: (1 . (2 3)) is just (1 2 3)
                     return match tail {
                         Value::Nil => Ok((Value::List(list), rest)),
                         Value::List(mut elems) => {
@@ -456,6 +458,7 @@ fn eval_lambda(elems: &[Value], env: &EnvRef) -> Result<Value, String> {
     if elems.len() < 3 {
         return Err("lambda requires parameters and body".to_string());
     }
+    // collect() into a Result stops at the first non-symbol and returns its Err; otherwise it yields every name
     let params: Result<Vec<String>, String> = match &elems[1] {
         Value::List(p) => p
             .iter()
@@ -482,6 +485,8 @@ fn eval_begin(elems: &[Value], env: &EnvRef) -> Result<Value, String> {
     Ok(result)
 }
 
+/// Like eval_begin, but for bodies that have no `begin` keyword to skip:
+/// the body of a matching cond clause, or of a let, arrives as a bare slice.
 fn eval_begin_slice(exprs: &[Value], env: &EnvRef) -> Result<Value, String> {
     let mut result = Value::Nil;
     for expr in exprs {
@@ -517,6 +522,8 @@ fn set_in_env(name: &str, val: Value, env: &EnvRef) -> Result<(), String> {
     }
 }
 
+/// A subset of standard cond: every clause needs a test and a body.
+/// Test-only clauses and `=>` are not supported; no match yields Nil.
 fn eval_cond(elems: &[Value], env: &EnvRef) -> Result<Value, String> {
     for clause in &elems[1..] {
         match clause {
