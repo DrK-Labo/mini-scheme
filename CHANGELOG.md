@@ -1,37 +1,45 @@
 # Changelog
 
-本書『Rustで作るSchemeインタプリタ』のソースコードリポジトリの変更履歴です。
-形式は [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/) に基づきます。
+Change history of the source code repository for the book *Crafting a Scheme Interpreter in Rust*
+(the Japanese edition was published first).
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased]
+## [v1.1-en]
 
-### Fixed
-- `(def)` を評価するとインタプリタがパニックしていた。長さ検査より先に `elems[1]` を
-  参照していたのが原因で、`Err` を返すように修正（`eval_define`）
-- `(let () ...)` が新しいスコープを作らず、束縛リストが空のときだけ内側の `def` が
-  外側へ漏れていた（`eval_let`）
-- 単項の `(/ 0)` がゼロ除算エラーにならず `inf` を返していた。検査が第2引数以降しか
-  見ていなかった（`apply_builtin` の `"/"`）
-
-- REPL が `Value::Nil` を表示しない問題を修正。`display` の戻り値を隠すつもりの抑制が、
-  `(cdr '(1))` や `(list)` が返す**正当な空リストまで握り潰していた**。
-  Gauche は同じ入力に `()` を返す
-- レキサが全角スペース・NBSP などの Unicode 空白に出会うと無限ループになっていた。
-  空白の判定を `c.is_whitespace()` に変更（`tokenize`）。
-  回帰テストを追加（ユニットテスト 124個 → 125個）
+The English-comment build that accompanies the English edition (version 1.1).
+The code is the same as on `main`; only the comments and documents differ.
 
 ### Changed
-- 上記3件の回帰テストを追加。ユニットテスト 120個 → 124個
-- `repl_nil_not_printed` を `repl_nil_is_printed` に改め、空リスト表示の回帰テストを追加
-  （統合テスト 9個 → 10個）
+- All comments in the code and tests, `README.md`, and this changelog are in English
+- The version is now 1.1.0 (the REPL banner shows `mini-scheme v1.1.0`)
+
+### Fixed
+- Evaluating `(def)` made the interpreter panic. It read `elems[1]` before checking the
+  length; it now returns an `Err` (`eval_define`)
+- `(let () ...)` did not open a new scope: when the binding list was empty, an inner `def`
+  leaked out to the enclosing scope (`eval_let`)
+- Unary `(/ 0)` returned `inf` instead of a division-by-zero error. The check looked only at
+  the second and later arguments (`"/"` in `apply_builtin`)
+
+- The REPL did not print `Value::Nil`. The suppression meant to hide the return value of
+  `display` **also swallowed legitimate empty lists**, such as the result of `(cdr '(1))` or `(list)`.
+  Gauche returns `()` for the same input
+- The lexer looped forever on Unicode whitespace such as the ideographic space or NBSP.
+  Whitespace is now detected with `c.is_whitespace()` (`tokenize`).
+  Added a regression test (unit tests 124 → 125)
+
+### Added
+- Regression tests for the three fixes above (unit tests 120 → 124)
+- Renamed `repl_nil_not_printed` to `repl_nil_is_printed`, and added a regression test for
+  printing the empty list (integration tests 9 → 10)
 
 ## [v1.0] - 2026-04-12
 
-初版リリース。
+Initial release, with Japanese comments, for the Japanese edition.
 
 ### Added
-- 完成版インタプリタ（`src/main.rs`）— ユニットテスト120個、統合テスト9個を含む
-- Schemeメタ循環評価器（`mini-eval.scm`）
-- 各章スナップショット（`chapters/ch04`〜`ch11`）— スナップショットテスト37個
-- Schemeテスト（`tests/scheme/`）— 50個
+- The finished interpreter (`src/main.rs`) — with 120 unit tests and 9 integration tests
+- The Scheme metacircular evaluator (`mini-eval.scm`)
+- Snapshots for each chapter (`chapters/ch04`–`ch11`) — 37 snapshot tests
+- Scheme tests (`tests/scheme/`) — 50
 - MIT LICENSE

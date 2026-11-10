@@ -1,6 +1,6 @@
-// src/main.rs — Chapter 7: 構文解析
+// src/main.rs — Chapter 7: Parsing
 
-/// トークンの種類
+/// Token types
 #[derive(Debug, Clone, PartialEq)]
 enum Token {
     LParen,
@@ -13,7 +13,7 @@ enum Token {
     Dot,
 }
 
-/// S式（Schemeの値）
+/// S-expression (Scheme value)
 #[derive(Debug, Clone, PartialEq)]
 enum Value {
     Number(f64),
@@ -25,7 +25,7 @@ enum Value {
     Nil,
 }
 
-// ===== 字句解析（Chapter 6） =====
+// ===== Lexical Analysis (Chapter 6) =====
 
 fn tokenize(input: &str) -> Result<Vec<Token>, String> {
     let mut tokens = Vec::new();
@@ -141,6 +141,7 @@ where
     s
 }
 
+/// Looks one character ahead: is this `-` subtraction, or the sign of -7?
 fn is_digit_ahead(chars: &mut std::iter::Peekable<std::str::Chars>) -> bool {
     let mut clone = chars.clone();
     clone.next();
@@ -150,7 +151,7 @@ fn is_digit_ahead(chars: &mut std::iter::Peekable<std::str::Chars>) -> bool {
     }
 }
 
-// ===== 構文解析（Chapter 7） =====
+// ===== Parsing (Chapter 7) =====
 
 fn parse(tokens: &[Token]) -> Result<(Value, &[Token]), String> {
     if tokens.is_empty() {

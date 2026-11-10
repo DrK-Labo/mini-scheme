@@ -1,5 +1,5 @@
 #!/bin/bash
-# test_ch10.sh — Chapter 10: 組み込み関数 のテスト
+# test_ch10.sh — tests for Chapter 10: Built-In Functions
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJ_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"

@@ -1,5 +1,5 @@
 #!/bin/bash
-# test_ch08.sh — Chapter 8: 評価器 のテスト
+# test_ch08.sh — tests for Chapter 8: The Evaluator
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJ_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"

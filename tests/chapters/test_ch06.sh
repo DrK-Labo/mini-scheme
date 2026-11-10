@@ -1,5 +1,5 @@
 #!/bin/bash
-# test_ch06.sh — Chapter 6: 字句解析 のテスト
+# test_ch06.sh — tests for Chapter 6: Lexical Analysis
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJ_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"

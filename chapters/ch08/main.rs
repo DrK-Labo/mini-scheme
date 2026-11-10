@@ -1,10 +1,10 @@
-// src/main.rs — Chapter 8: 評価器（基本）
+// src/main.rs — Chapter 8: The Evaluator (Basics)
 
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 
-// ===== トークン（Chapter 6） =====
+// ===== Tokens (Chapter 6) =====
 
 #[derive(Debug, Clone, PartialEq)]
 enum Token {
@@ -18,8 +18,9 @@ enum Token {
     Dot,
 }
 
-// ===== S式 / 値（Chapter 7-8） =====
+// ===== S-expressions / Values (Chapter 7-8) =====
 
+/// S-expression (Scheme value)
 #[derive(Debug, Clone)]
 enum Value {
     Number(f64),
@@ -48,6 +49,7 @@ impl PartialEq for Value {
             (Value::DottedList(a1, a2), Value::DottedList(b1, b2)) => a1 == b1 && a2 == b2,
             (Value::Nil, Value::Nil) => true,
             (Value::BuiltinFunc(a), Value::BuiltinFunc(b)) => a == b,
+            // Comparing closures always yields false
             _ => false,
         }
     }
@@ -95,7 +97,7 @@ impl std::fmt::Display for Value {
     }
 }
 
-// ===== 環境（Chapter 8） =====
+// ===== Environment (Chapter 8) =====
 
 #[derive(Debug, Clone)]
 struct Env {
@@ -106,6 +108,7 @@ struct Env {
 type EnvRef = Rc<RefCell<Env>>;
 
 impl Env {
+    /// Create a new empty environment (no parent)
     fn new() -> EnvRef {
         Rc::new(RefCell::new(Env {
             vars: HashMap::new(),
@@ -113,6 +116,7 @@ impl Env {
         }))
     }
 
+    /// Create a new environment with a given parent
     fn with_parent(parent: EnvRef) -> EnvRef {
         Rc::new(RefCell::new(Env {
             vars: HashMap::new(),
@@ -120,10 +124,12 @@ impl Env {
         }))
     }
 
+    /// Define a variable (used by def, let, letrec, etc.)
     fn define(&mut self, name: String, val: Value) {
         self.vars.insert(name, val);
     }
 
+    /// Look up a variable (walk the parent chain if not found)
     fn lookup(&self, name: &str) -> Result<Value, String> {
         if let Some(val) = self.vars.get(name) {
             Ok(val.clone())
@@ -135,7 +141,7 @@ impl Env {
     }
 }
 
-// ===== 字句解析（Chapter 6） =====
+// ===== Lexical Analysis (Chapter 6) =====
 
 fn tokenize(input: &str) -> Result<Vec<Token>, String> {
     let mut tokens = Vec::new();
@@ -260,7 +266,7 @@ fn is_digit_ahead(chars: &mut std::iter::Peekable<std::str::Chars>) -> bool {
     }
 }
 
-// ===== 構文解析（Chapter 7） =====
+// ===== Parsing (Chapter 7) =====
 
 fn parse(tokens: &[Token]) -> Result<(Value, &[Token]), String> {
     if tokens.is_empty() {
@@ -351,18 +357,26 @@ fn parse_all(tokens: &[Token]) -> Result<Vec<Value>, String> {
     Ok(results)
 }
 
-// ===== 評価器（Chapter 8） =====
+// ===== Evaluator (Chapter 8) =====
 
+/// Evaluate an S-expression
 fn eval(expr: &Value, env: &EnvRef) -> Result<Value, String> {
     match expr {
+        // Self-evaluating expressions
         Value::Number(_) | Value::Str(_) | Value::Bool(_) | Value::Nil => {
             Ok(expr.clone())
         }
+
+        // Symbol → look up its value in the environment
         Value::Symbol(name) => env.borrow().lookup(name),
+
+        // List → special form or function call
         Value::List(elems) => {
             if elems.is_empty() {
                 return Ok(Value::Nil);
             }
+
+            // If the head element is a symbol, check for special forms
             if let Value::Symbol(op) = &elems[0] {
                 match op.as_str() {
                     "quote" => eval_quote(elems),
@@ -380,9 +394,13 @@ fn eval(expr: &Value, env: &EnvRef) -> Result<Value, String> {
                 eval_call(elems, env)
             }
         }
+
+        // Dotted pairs cannot be evaluated (exist only as data)
         Value::DottedList(..) => {
             Err("Cannot evaluate improper list (dotted pair)".to_string())
         }
+
+        // Closure and BuiltinFunc are returned as is
         Value::Closure { .. } | Value::BuiltinFunc(_) => Ok(expr.clone()),
     }
 }
@@ -417,6 +435,7 @@ fn eval_define(elems: &[Value], env: &EnvRef) -> Result<Value, String> {
         return Err("def requires a name".to_string());
     }
     match &elems[1] {
+        // (def x 10) — variable definition
         Value::Symbol(name) => {
             if elems.len() != 3 {
                 return Err("def requires a value".to_string());
@@ -425,6 +444,7 @@ fn eval_define(elems: &[Value], env: &EnvRef) -> Result<Value, String> {
             env.borrow_mut().define(name.clone(), val);
             Ok(Value::Symbol(name.clone()))
         }
+        // (def (f x) body...) — function definition (syntactic sugar)
         Value::List(name_and_params) => {
             if name_and_params.is_empty() {
                 return Err("def: empty function name".to_string());
@@ -456,6 +476,7 @@ fn eval_lambda(elems: &[Value], env: &EnvRef) -> Result<Value, String> {
     if elems.len() < 3 {
         return Err("lambda requires parameters and body".to_string());
     }
+    // collect() into a Result stops at the first non-symbol and returns its Err; otherwise it yields every name
     let params: Result<Vec<String>, String> = match &elems[1] {
         Value::List(p) => p
             .iter()
@@ -510,7 +531,7 @@ fn set_in_env(name: &str, val: Value, env: &EnvRef) -> Result<(), String> {
         Ok(())
     } else if let Some(parent) = &env_ref.parent {
         let parent = Rc::clone(parent);
-        drop(env_ref);
+        drop(env_ref); // release the borrow before touching the parent
         set_in_env(name, val, &parent)
     } else {
         Err(format!("set!: undefined variable: {}", name))
@@ -556,7 +577,7 @@ fn eval_let(elems: &[Value], env: &EnvRef) -> Result<Value, String> {
                     Value::Symbol(s) => s.clone(),
                     _ => return Err("let: binding name must be a symbol".to_string()),
                 };
-                let val = eval(&pair[1], env)?;
+                let val = eval(&pair[1], env)?; // evaluate in the original environment
                 new_env.borrow_mut().define(name, val);
             }
             _ => return Err("let: invalid binding".to_string()),

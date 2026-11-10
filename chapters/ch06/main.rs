@@ -1,19 +1,19 @@
-// src/main.rs — Chapter 6: 字句解析
+// src/main.rs — Chapter 6: Lexical Analysis
 
-/// トークンの種類
+/// Token types
 #[derive(Debug, Clone, PartialEq)]
 enum Token {
     LParen,           // (
     RParen,           // )
-    Number(f64),      // 数値
-    Str(String),      // 文字列
+    Number(f64),      // number
+    Str(String),      // string
     Bool(bool),       // #t, #f
-    Symbol(String),   // シンボル
+    Symbol(String),   // symbol
     Quote,            // '
     Dot,              // .
 }
 
-/// 文字列をトークン列に分解する
+/// Break a string into a token sequence
 fn tokenize(input: &str) -> Result<Vec<Token>, String> {
     let mut tokens = Vec::new();
     let mut chars = input.chars().peekable();
@@ -128,6 +128,7 @@ where
     s
 }
 
+/// Looks one character ahead: is this `-` subtraction, or the sign of -7?
 fn is_digit_ahead(chars: &mut std::iter::Peekable<std::str::Chars>) -> bool {
     let mut clone = chars.clone();
     clone.next();

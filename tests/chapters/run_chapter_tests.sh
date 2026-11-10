@@ -1,5 +1,5 @@
 #!/bin/bash
-# run_chapter_tests.sh — 全章テストの実行ラッパー
+# run_chapter_tests.sh — runs the tests for every chapter snapshot
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 

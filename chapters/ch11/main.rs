@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use std::io::{self, Write};
 use std::rc::Rc;
 
-// ===== トークン（Chapter 6） =====
+// ===== Tokens (Chapter 6) =====
 
 #[derive(Debug, Clone, PartialEq)]
 enum Token {
@@ -19,7 +19,7 @@ enum Token {
     Dot,
 }
 
-// ===== S式 / 値（Chapter 7-8） =====
+// ===== S-expressions / Values (Chapter 7-8) =====
 
 #[derive(Debug, Clone)]
 enum Value {
@@ -96,7 +96,7 @@ impl std::fmt::Display for Value {
     }
 }
 
-// ===== 環境（Chapter 8） =====
+// ===== Environment (Chapter 8) =====
 
 #[derive(Debug, Clone)]
 struct Env {
@@ -136,7 +136,7 @@ impl Env {
     }
 }
 
-// ===== 字句解析（Chapter 6） =====
+// ===== Lexical Analysis (Chapter 6) =====
 
 fn tokenize(input: &str) -> Result<Vec<Token>, String> {
     let mut tokens = Vec::new();
@@ -261,7 +261,7 @@ fn is_digit_ahead(chars: &mut std::iter::Peekable<std::str::Chars>) -> bool {
     }
 }
 
-// ===== 構文解析（Chapter 7） =====
+// ===== Parsing (Chapter 7) =====
 
 fn parse(tokens: &[Token]) -> Result<(Value, &[Token]), String> {
     if tokens.is_empty() {
@@ -352,7 +352,7 @@ fn parse_all(tokens: &[Token]) -> Result<Vec<Value>, String> {
     Ok(results)
 }
 
-// ===== 評価器（Chapter 8-10） =====
+// ===== Evaluator (Chapter 8-10) =====
 
 fn eval(expr: &Value, env: &EnvRef) -> Result<Value, String> {
     match expr {
@@ -613,7 +613,7 @@ fn apply_func(func: &Value, args: &[Value]) -> Result<Value, String> {
     }
 }
 
-// ===== 組み込み関数（Chapter 10） =====
+// ===== Built-in Functions (Chapter 10) =====
 
 fn apply_builtin(name: &str, args: &[Value]) -> Result<Value, String> {
     match name {
@@ -629,7 +629,7 @@ fn apply_builtin(name: &str, args: &[Value]) -> Result<Value, String> {
             if args.is_empty() {
                 return Err("/ requires at least 1 argument".to_string());
             }
-            // (/ x) は 1 / x と解釈されるので、引数が1つならそれ自身が除数
+            // (/ x) means 1 / x, so a lone argument is the divisor
             let divisors = if args.len() == 1 { args } else { &args[1..] };
             for arg in divisors {
                 if let Value::Number(n) = arg {
@@ -815,7 +815,7 @@ fn builtin_equal(args: &[Value]) -> Result<Value, String> {
     Ok(Value::Bool(args[0] == args[1]))
 }
 
-// ===== グローバル環境 =====
+// ===== Global Environment =====
 
 fn make_global_env() -> EnvRef {
     let env = Env::new();
@@ -835,7 +835,7 @@ fn make_global_env() -> EnvRef {
     env
 }
 
-// ===== REPL（Chapter 11） =====
+// ===== REPL (Chapter 11) =====
 
 fn run(input: &str, env: &EnvRef) -> Result<Value, String> {
     let tokens = tokenize(input)?;
@@ -848,9 +848,9 @@ fn run(input: &str, env: &EnvRef) -> Result<Value, String> {
     Ok(result)
 }
 
-/// 入力が完結しているか、トークンレベルで判定する。
-/// tokenize が成功し、カッコの深さが 0 以下なら入力完了。
-/// tokenize が失敗した場合（未閉じ文字列など）は未完了と見なす。
+/// Decide whether the input is complete, at the token level.
+/// Complete when tokenize succeeds and the paren depth is zero or less.
+/// A tokenize failure (an unterminated string, say) counts as incomplete.
 fn is_ready(input: &str) -> bool {
     match tokenize(input) {
         Ok(tokens) => {
@@ -861,7 +861,7 @@ fn is_ready(input: &str) -> bool {
             }).sum();
             depth <= 0
         }
-        Err(_) => false,
+        Err(_) => false, // Unclosed string etc. → wait for more input
     }
 }
 
@@ -896,7 +896,7 @@ fn main() {
                 }
 
                 if !is_ready(&buffer) {
-                    continue;
+                    continue; // Not yet balanced → wait for next line
                 }
 
                 let input = buffer.trim().to_string();

@@ -1,14 +1,19 @@
+[日本語](https://github.com/DrK-Labo/mini-scheme/tree/main) | **English**
+
 # mini-scheme
 
-> 約1,000行の Rust で書かれた、学習用の小さな Scheme インタプリタ
+> A small Scheme interpreter for learning, written in about 1,000 lines of Rust
 
-字句解析、構文解析、評価器、クロージャ、レキシカルスコープ、REPL までを段階的に実装した、書籍『Rustで作るSchemeインタプリタ』の付録実装コードです。コード規模は抑えつつ、メタ循環評価器・Y コンビネータ・末尾呼び出し最適化といった言語処理系の核心トピックを動かして確かめられる程度の表現力を持たせています。
+This is the companion code for the book *Crafting a Scheme Interpreter in Rust*. It builds a Scheme interpreter step by step — lexical analysis, parsing, the evaluator, closures, lexical scope, and the REPL. The code stays small, but it is expressive enough to run and try out the core topics of language implementation: a metacircular evaluator, the Y combinator, and tail-call optimization.
 
-## 動かしてみる
+This `en` branch carries the same code as `main`, with English comments. `main` carries Japanese comments for the Japanese edition.
+
+## Try it
 
 ```bash
 git clone https://github.com/DrK-Labo/mini-scheme.git
 cd mini-scheme
+git checkout v1.1-en
 cargo run
 ```
 
@@ -26,9 +31,9 @@ mini> (exit)
 Bye!
 ```
 
-## 何が動くか
+## What it can run
 
-### 階乗（再帰）
+### Factorial (recursion)
 
 ```scheme
 (def (factorial n)
@@ -40,7 +45,7 @@ Bye!
 ; => 3628800
 ```
 
-### クロージャ（環境捕捉とレキシカルスコープ）
+### Closures (captured environments and lexical scope)
 
 ```scheme
 (def (make-adder n)
@@ -51,7 +56,7 @@ Bye!
 ; => 105
 ```
 
-### Y コンビネータ（名前なし再帰）
+### The Y combinator (recursion without names)
 
 ```scheme
 (def Y (lambda (F)
@@ -67,71 +72,71 @@ Bye!
 ; => 3628800
 ```
 
-`def` の右辺で名前を一切使わずに、再帰関数を構築しています。λ計算の Y コンビネータが mini-scheme でそのまま動く、という実例。詳しくは Zenn 記事「[Y Combinator という名前の話](https://zenn.dev/drk_laboratory)」を参照。
+This builds a recursive function without using any name on the right-hand side of `def`: the Y combinator of the lambda calculus runs as is in mini-scheme. For more, see the [Zenn article on the name "Y combinator"](https://zenn.dev/drk_laboratory) (in Japanese).
 
-## 書籍について
+## About the book
 
-本リポジトリは、技術書 **『Rustで作るSchemeインタプリタ — Scheme言語の実装で学ぶ、Rustとソフトウェアサイエンス』** の付録実装コードです。約1,000行の Rust コードを、字句解析→構文解析→評価器→クロージャ→REPL の順に章ごとに組み上げる構成。
+This repository is the companion code for the book **_Crafting a Scheme Interpreter in Rust — Hands-on Implementation of Lexers, Parsers, Evaluators, Closures & Lexical Scope_**. About 1,000 lines of Rust are assembled chapter by chapter, in the order lexical analysis → parsing → evaluator → closures → REPL.
 
 | | |
 |---|---|
-| 書籍 | [Amazon Kindle で見る](https://www.amazon.co.jp/dp/B0GX2VM5W5) |
-| 配信 | Kindle Unlimited 対象 |
-| 著者 | Dr.K Laboratory |
+| English edition | *Crafting a Scheme Interpreter in Rust* — code: the `v1.1-en` tag on this `en` branch |
+| Japanese edition | [Amazon Kindle (Japan)](https://www.amazon.co.jp/dp/B0GX2VM5W5) — code: the `main` branch (`v1.0` tag for the first edition) |
+| Author | Dr.K Laboratory |
 | X | [@DrKLaboratory](https://x.com/DrKLaboratory) |
 | Zenn | [drk_laboratory](https://zenn.dev/drk_laboratory) |
 
-## 章を追って読みたい方へ
+## Following along chapter by chapter
 
-書籍を読みながら手を動かす場合、各章の終わり時点で動くコードが [`chapters/`](chapters/) に保存されています。章ごとにビルドして、その章までで何が動くかを確かめながら進める設計です。
+If you want to work through the book hands-on, [`chapters/`](chapters/) holds the code as it runs at the end of each chapter. You can build each chapter on its own and see what works up to that point.
 
 ```bash
-# 例：Chapter 8（評価器まで）の状態で動かす
+# Example: run the state at Chapter 8 (up to the evaluator)
 rustc chapters/ch08/main.rs -o ch08-mini-scheme
 ./ch08-mini-scheme
 ```
 
-書籍を持っていない方も、`src/main.rs`（完成版、約1,000行）を読むだけでインタプリタの全景が見えます。Rust の `enum` と `match` で書かれた評価器の構造、`Rc<RefCell<T>>` を使った環境チェーンの実装、`eval` と `apply` の相互再帰など、言語処理系の典型的なパターンを単一ファイルで追えます。
+Even without the book, reading `src/main.rs` (the finished version, about 1,000 lines) gives you the whole picture of the interpreter. In a single file you can follow the typical patterns of a language implementation: an evaluator written with Rust's `enum` and `match`, an environment chain built on `Rc<RefCell<T>>`, and the mutual recursion of `eval` and `apply`.
 
-## ファイル構成
+## Files
 
-| ファイル | 説明 |
+| File | Description |
 |---|---|
-| [Cargo.toml](Cargo.toml) | Rust プロジェクト設定 |
-| [src/main.rs](src/main.rs) | 完成版インタプリタ（Chapter 6〜11 の全コードを統合） |
-| [mini-eval.scm](mini-eval.scm) | Scheme で書かれた Scheme インタプリタ — メタ循環評価器（Chapter 4） |
+| [Cargo.toml](Cargo.toml) | Rust project settings |
+| [src/main.rs](src/main.rs) | The finished interpreter (all the code from Chapters 6–11 combined) |
+| [mini-eval.scm](mini-eval.scm) | A Scheme interpreter written in Scheme — the metacircular evaluator (Chapter 4) |
 
-### 章ごとのコードスナップショット
+### Code snapshots by chapter
 
-| ディレクトリ | 対応する章 | 内容 |
+| Directory | Chapter | Contents |
 |---|---|---|
-| [chapters/ch04/mini-eval.scm](chapters/ch04/mini-eval.scm) | Chapter 4: メタ循環評価器 | Scheme による Scheme インタプリタ |
-| [chapters/ch06/main.rs](chapters/ch06/main.rs) | Chapter 6: 字句解析 | トークナイザ（Lexer） |
-| [chapters/ch07/main.rs](chapters/ch07/main.rs) | Chapter 7: 構文解析 | パーサー（Parser）+ Lexer |
-| [chapters/ch08/main.rs](chapters/ch08/main.rs) | Chapter 8: 評価器 | Evaluator + 環境 + 特殊形式 |
-| [chapters/ch09/main.rs](chapters/ch09/main.rs) | Chapter 9: 関数とクロージャ | Lambda + レキシカルスコープ |
-| [chapters/ch10/main.rs](chapters/ch10/main.rs) | Chapter 10: 組み込み関数 | car/cdr/cons/算術/比較/型述語 |
-| [chapters/ch11/main.rs](chapters/ch11/main.rs) | Chapter 11: REPL | 対話的実行環境の完成 |
+| [chapters/ch04/mini-eval.scm](chapters/ch04/mini-eval.scm) | Chapter 4: The Metacircular Evaluator | A Scheme interpreter in Scheme |
+| [chapters/ch06/main.rs](chapters/ch06/main.rs) | Chapter 6: Lexical Analysis | Tokenizer (lexer) |
+| [chapters/ch07/main.rs](chapters/ch07/main.rs) | Chapter 7: Parsing | Parser + lexer |
+| [chapters/ch08/main.rs](chapters/ch08/main.rs) | Chapter 8: The Evaluator | Evaluator + environment + special forms |
+| [chapters/ch09/main.rs](chapters/ch09/main.rs) | Chapter 9: Functions and Closures | Lambda + lexical scope |
+| [chapters/ch10/main.rs](chapters/ch10/main.rs) | Chapter 10: Built-In Functions | car/cdr/cons, arithmetic, comparison, type predicates |
+| [chapters/ch11/main.rs](chapters/ch11/main.rs) | Chapter 11: The REPL | The finished interactive environment |
 
-### その他
+### Other
 
-| ファイル | 説明 |
+| File | Description |
 |---|---|
-| [icon/](icon/) | DrK-Labo アイコン |
+| [icon/](icon/) | DrK-Labo icon |
 
-## ビルドと実行
+## Build and run
 
 ```bash
-# ビルド
+# Build
 cargo build
 
-# REPL を起動
+# Start the REPL
 cargo run
 ```
 
-## メタ循環評価器（Scheme版）の実行
+## Running the metacircular evaluator (Scheme version)
 
-Scheme で書かれた Scheme インタプリタを動かすには、[Gauche](https://practical-scheme.net/gauche/) が必要です。
+To run the Scheme interpreter written in Scheme, you need [Gauche](https://practical-scheme.net/gauche/).
 
 ```bash
 gosh -l mini-eval.scm
@@ -147,37 +152,37 @@ mini> ((make-adder 5) 100)
 105
 ```
 
-## テスト
+## Tests
 
-本リポジトリには4種類のテストがあります。
+This repository has four kinds of tests.
 
-| 種類 | ファイル | テスト数 | 内容 |
+| Kind | File | Count | What it covers |
 |------|--------|--------|------|
-| ユニットテスト | `src/main.rs` 末尾 | 125個 | トークナイザ、パーサー、評価器、組み込み関数、エラー処理 |
-| 統合テスト | `tests/integration.rs` | 10個 | REPL バイナリの起動・入出力・終了 |
-| 章スナップショットテスト | `tests/chapters/test_ch06.sh` 〜 `test_ch11.sh` | 各章数件 | 各章のコードが正しくビルド・実行できるか |
-| Scheme テスト | `tests/scheme/test_eval.scm` | 25個 | メタ循環評価器（mini-eval.scm）の動作検証 |
+| Unit tests | end of `src/main.rs` | 125 | Tokenizer, parser, evaluator, built-in functions, error handling |
+| Integration tests | `tests/integration.rs` | 10 | Starting the REPL binary, input/output, and exit |
+| Chapter snapshot tests | `tests/chapters/test_ch06.sh` – `test_ch11.sh` | a few per chapter | Whether each chapter's code builds and runs correctly |
+| Scheme tests | `tests/scheme/test_eval.scm` | 25 | Behavior of the metacircular evaluator (mini-eval.scm) |
 
-### テストの実行
+### Running the tests
 
 ```bash
-# Rust ユニットテスト + 統合テスト
+# Rust unit tests + integration tests
 cargo test
 
-# 各章スナップショットのビルド・実行テスト
+# Build-and-run tests for each chapter snapshot
 bash tests/chapters/run_chapter_tests.sh
 
-# メタ循環評価器のテスト（Gauche が必要）
+# Tests for the metacircular evaluator (needs Gauche)
 bash tests/scheme/run_scheme_tests.sh
 
-# 上記すべてを一括実行
+# Run all of the above at once
 bash run_tests.sh
 ```
 
-ユニットテストは `src/main.rs` のファイル末尾に `#[cfg(test)]` で配置しています。これは Rust の標準的な慣習で、テストコードは `cargo test` 実行時にだけコンパイルされ、本番バイナリには含まれません。テストを含まない実装コードは `chapters/ch11/main.rs` を参照してください。
+The unit tests sit at the end of `src/main.rs`, inside `#[cfg(test)]`. That is the standard Rust convention: test code is compiled only when `cargo test` runs and never ends up in the production binary. For the implementation alone, without tests, see `chapters/ch11/main.rs`.
 
-テストの書き方の詳細は、書籍の **Appendix D: GitHubリポジトリの利用とテストの書き方** を参照してください。
+For how to write the tests, see **Appendix D: Using the GitHub Repository and Writing Tests** in the book.
 
-## ライセンス
+## License
 
 MIT

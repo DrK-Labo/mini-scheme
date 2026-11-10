@@ -1,7 +1,7 @@
 #!/bin/bash
-# run_scheme_tests.sh — Scheme テストの実行ラッパー
+# run_scheme_tests.sh — runs the Scheme tests
 #
-# Gauche (gosh) がなければ SKIP する（exit 0）。
+# Skips (exit 0) if Gauche (gosh) is not installed.
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJ_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
@@ -16,7 +16,7 @@ echo
 
 TOTAL_PASS=0; TOTAL_FAIL=0
 
-# テスト1: mini-eval.scm（ルート）
+# Test 1: mini-eval.scm (root)
 echo "--- mini-eval.scm (root) ---"
 if gosh -l "$PROJ_DIR/mini-eval.scm" "$SCRIPT_DIR/test_eval.scm"; then
     TOTAL_PASS=$((TOTAL_PASS + 1))
@@ -25,7 +25,7 @@ else
 fi
 echo
 
-# テスト2: chapters/ch04/mini-eval.scm
+# Test 2: chapters/ch04/mini-eval.scm
 echo "--- chapters/ch04/mini-eval.scm ---"
 if gosh -l "$PROJ_DIR/chapters/ch04/mini-eval.scm" "$SCRIPT_DIR/test_eval.scm"; then
     TOTAL_PASS=$((TOTAL_PASS + 1))

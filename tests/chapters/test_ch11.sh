@@ -1,5 +1,5 @@
 #!/bin/bash
-# test_ch11.sh — Chapter 11: REPL のテスト
+# test_ch11.sh — tests for Chapter 11: The REPL
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJ_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
@@ -22,33 +22,33 @@ check() {
 echo "=== Chapter 11: REPL ==="
 rustc "$SRC" -o "$TMPDIR/ch11" 2>/dev/null
 
-# テスト1: 基本的な算術
+# Test 1: basic arithmetic
 OUTPUT=$(echo '(+ 1 2 3)
 (exit)' | "$TMPDIR/ch11")
 check "arithmetic"  "6"
 
-# テスト2: def + 呼び出し
+# Test 2: def + call
 OUTPUT=$(echo '(def (square x) (* x x))
 (square 7)
 (exit)' | "$TMPDIR/ch11")
 check "def and call"  "49"
 
-# テスト3: 複数行入力
+# Test 3: multi-line input
 OUTPUT=$(echo '(+ 1
    2
    3)
 (exit)' | "$TMPDIR/ch11")
 check "multiline"  "6"
 
-# テスト4: exit で Bye!
+# Test 4: Bye! on exit
 OUTPUT=$(echo '(exit)' | "$TMPDIR/ch11")
 check "exit message"  "Bye!"
 
-# テスト5: EOF で Bye!
+# Test 5: Bye! on EOF
 OUTPUT=$(echo -n "" | "$TMPDIR/ch11")
 check "eof message"  "Bye!"
 
-# テスト6: factorial
+# Test 6: factorial
 OUTPUT=$(echo '(def (factorial n) (if (= n 0) 1 (* n (factorial (- n 1)))))
 (factorial 10)
 (exit)' | "$TMPDIR/ch11")

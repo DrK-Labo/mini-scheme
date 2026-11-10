@@ -1,42 +1,42 @@
 # mini-scheme v1.0 — Initial Release
 
-書籍『Rustで作るSchemeインタプリタ — Scheme言語の実装で学ぶ、Rustとソフトウェアサイエンス』の実装コードです。
+The implementation code for the Japanese edition of the book (published 2026-04-12). The `v1.0` tag carries Japanese comments.
 
-## 含まれるもの
+## What's included
 
-### Rust版インタプリタ（`src/main.rs`）
+### The Rust interpreter (`src/main.rs`)
 
-Scheme のサブセット「mini-Scheme」のインタプリタです。以下の機能を備えています。
+An interpreter for "mini-Scheme", a subset of Scheme. It provides:
 
-- **字句解析**: 文字列をトークンに分解（数値・文字列・シンボル・括弧・クォート）
-- **構文解析**: トークン列からS式（Value enum）を構築する再帰下降パーサー
-- **評価器**: `eval` / `apply_builtin` による式の評価。特殊形式（`if`, `def`, `lambda`, `quote`, `begin`, `set!`, `cond`, `let`, `and`, `or`）をサポート
-- **環境**: `HashMap` フレーム連鎖によるレキシカルスコープ。`Rc<RefCell<Env>>` で共有
-- **クロージャ**: 定義時の環境を捕捉する第一級関数
-- **組み込み関数**: 算術（`+`, `-`, `*`, `/`）、比較（`=`, `<`, `>`, `<=`, `>=`）、リスト操作（`car`, `cdr`, `cons`, `list`, `append`）、型述語（`null?`, `pair?`, `number?`, `string?`, `symbol?`, `procedure?`, `list?`）、等価判定（`eq?`, `equal?`）、入出力（`display`, `newline`）、その他（`not`, `length`, `map`, `apply`）
-- **REPL**: 複数行入力対応の対話的実行環境
+- **Lexical analysis**: breaks a string into tokens (numbers, strings, symbols, parentheses, quotes)
+- **Parsing**: a recursive-descent parser that builds S-expressions (the Value enum) from a token sequence
+- **Evaluator**: evaluates expressions with `eval` / `apply_builtin`. Supports the special forms `if`, `def`, `lambda`, `quote`, `begin`, `set!`, `cond`, `let`, `and`, `or`
+- **Environments**: lexical scope through a chain of `HashMap` frames, shared with `Rc<RefCell<Env>>`
+- **Closures**: first-class functions that capture the environment of their definition
+- **Built-in functions**: arithmetic (`+`, `-`, `*`, `/`), comparison (`=`, `<`, `>`, `<=`, `>=`), list operations (`car`, `cdr`, `cons`, `list`, `append`), type predicates (`null?`, `pair?`, `number?`, `string?`, `symbol?`, `procedure?`, `list?`), equivalence (`eq?`, `equal?`), I/O (`display`, `newline`), and others (`not`, `length`, `map`, `apply`)
+- **REPL**: an interactive environment that accepts multi-line input
 
-### Schemeメタ循環評価器（`mini-eval.scm`）
+### The Scheme metacircular evaluator (`mini-eval.scm`)
 
-Gauche上で動作する、Schemeで書かれたSchemeインタプリタです。書籍 Chapter 4 で解説しています。
+A Scheme interpreter written in Scheme, running on Gauche. The book explains it in Chapter 4.
 
-### 章ごとのコードスナップショット（`chapters/`）
+### Code snapshots by chapter (`chapters/`)
 
-書籍の各章末時点で動作するソースコードです。Chapter 4（Scheme版）、Chapter 6〜11（Rust版）の各段階を収録しています。
+Source code that runs as of the end of each chapter of the book. It covers each stage: Chapter 4 (the Scheme version) and Chapters 6–11 (the Rust version).
 
-## テスト
+## Tests
 
-120個のユニットテスト、9個の統合テスト、章スナップショットのビルドテスト、Scheme版の動作テスト（26個）を含みます。
+Includes 120 unit tests, 9 integration tests, build tests for the chapter snapshots, and behavior tests for the Scheme version (26).
 
 ```bash
-bash run_tests.sh    # 全テスト一括実行
+bash run_tests.sh    # run all the tests at once
 ```
 
-## 動作環境
+## Requirements
 
-- **Rust**: Edition 2024（rustc 1.85 以降）
-- **Gauche**: メタ循環評価器の実行に必要（オプション）
+- **Rust**: Edition 2024 (rustc 1.85 or later)
+- **Gauche**: needed to run the metacircular evaluator (optional)
 
-## ライセンス
+## License
 
 MIT

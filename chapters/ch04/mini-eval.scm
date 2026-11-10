@@ -1,44 +1,36 @@
-;;;; mini-eval.scm — SchemeでSchemeを書く（メタ循環評価器）
-;;;;
-;;;; Chapter 4 の完成コード。Gauche (gosh) で実行できます。
-;;;;
-;;;; 使い方:
-;;;;   $ gosh -l mini-eval.scm
-;;;;   gosh> (my-repl)
-;;;;   mini> (+ 1 2 3)
-;;;;   6
+;;;; mini-eval.scm — a Scheme interpreter written in Scheme
 
-;;; グローバル環境（defineで定義された変数はここに蓄積される）
+;;; Global environment (variables defined by def accumulate here)
 (define *global-env* '())
 
-;;; ===== 評価器 =====
+;;; ===== Evaluator =====
 
 (define (my-eval expr env)
   (cond
-    ;; 数値・文字列・真偽値はそのまま返す（自己評価的）
+    ;; Numbers, strings, and booleans are self-evaluating
     ((number? expr) expr)
     ((string? expr) expr)
     ((boolean? expr) expr)
 
-    ;; シンボルは環境から値を探す
+    ;; Symbols: look up the value in the environment
     ((symbol? expr)
      (lookup-env expr env))
 
-    ;; リスト（特殊形式 or 関数呼び出し）
+    ;; Lists (special forms or function calls)
     ((pair? expr)
      (let ((op (car expr)))
        (cond
-         ;; (quote datum) — データをそのまま返す
+         ;; (quote datum) — return the datum as is
          ((eq? op 'quote)
           (cadr expr))
 
-         ;; (if cond then else) — 条件分岐
+         ;; (if cond then else) — conditional
          ((eq? op 'if)
           (if (my-eval (cadr expr) env)
               (my-eval (caddr expr) env)
               (my-eval (cadddr expr) env)))
 
-         ;; (def name value) または (def (name args...) body)
+         ;; (def name value) or (def (name args...) body)
          ((eq? op 'def)
           (if (pair? (cadr expr))
               ;; (def (f x) body) => (def f (lambda (x) body))
@@ -56,17 +48,17 @@
                       (cons (cons name val) *global-env*))
                 name)))
 
-         ;; (lambda (params...) body...) — クロージャを作る
+         ;; (lambda (params...) body...) — build a closure
          ((eq? op 'lambda)
           (let ((params (cadr expr))
                 (body (cddr expr)))
             (list 'closure params body env)))
 
-         ;; (begin expr1 expr2 ...) — 順に評価し最後の値を返す
+         ;; (begin expr1 expr2 ...) — evaluate in order, return last
          ((eq? op 'begin)
           (eval-sequence (cdr expr) env))
 
-         ;; それ以外 — 関数呼び出し
+         ;; Otherwise — a function call
          (else
           (let ((proc (my-eval op env))
                 (args (map (lambda (a) (my-eval a env))
@@ -76,15 +68,15 @@
     (else
      (error "Unknown expression:" expr))))
 
-;;; ===== 関数適用 =====
+;;; ===== Function application =====
 
 (define (my-apply proc args)
   (cond
-    ;; 組み込み関数（ホストSchemeの関数をそのまま使う）
+    ;; Built-in functions (reuse the host Scheme's procedures)
     ((procedure? proc)
      (apply proc args))
 
-    ;; ユーザー定義関数（クロージャ）
+    ;; User-defined functions (closures)
     ((and (pair? proc) (eq? (car proc) 'closure))
      (let ((params (cadr proc))
            (body (caddr proc))
@@ -110,9 +102,9 @@
             (newline)
             (loop))))))
 
-;;; ===== 補助関数 =====
+;;; ===== Helpers =====
 
-;; 式の列を順に評価し、最後の値を返す
+;; Evaluate a sequence of expressions in order, return the last value
 (define (eval-sequence exprs env)
   (if (null? (cdr exprs))
       (my-eval (car exprs) env)
@@ -120,16 +112,16 @@
         (my-eval (car exprs) env)
         (eval-sequence (cdr exprs) env))))
 
-;;; ===== 環境 =====
+;;; ===== Environments =====
 
-;; ローカル環境に束縛を追加する（純粋関数的）
+;; Add bindings to a local environment (purely functional)
 (define (extend-env names vals base-env)
   (if (null? names)
       base-env
       (cons (cons (car names) (car vals))
             (extend-env (cdr names) (cdr vals) base-env))))
 
-;; 変数を検索する: まずローカル環境、次にグローバル環境
+;; Look up a variable: search the local environment first, then global
 (define (lookup-env sym env)
   (let ((found (assq sym env)))
     (if found
@@ -139,18 +131,18 @@
               (cdr global-found)
               (error "Undefined variable:" sym))))))
 
-;;; ===== 初期環境 =====
+;;; ===== Initial environment =====
 
 (define (make-global-env)
   (list
-    ;; 算術演算
+    ;; Arithmetic
     (cons '+ +) (cons '- -) (cons '* *) (cons '/ /)
-    ;; 比較
+    ;; Comparison
     (cons '= =) (cons '< <) (cons '> >) (cons '<= <=) (cons '>= >=)
-    ;; リスト操作
+    ;; List operations
     (cons 'car car) (cons 'cdr cdr) (cons 'cons cons)
     (cons 'list list) (cons 'null? null?) (cons 'pair? pair?)
-    ;; 入出力
+    ;; I/O
     (cons 'display display) (cons 'newline newline)
-    ;; その他
+    ;; Other
     (cons 'not not) (cons 'eq? eq?)))

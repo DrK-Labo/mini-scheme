@@ -1,13 +1,13 @@
 #!/bin/bash
-# run_tests.sh — 全テスト統合スクリプト
+# run_tests.sh — runs the full test suite
 #
-# 使い方:
+# Usage:
 #   bash run_tests.sh
 #
-# 実行内容:
-#   1. cargo test（ユニットテスト + 統合テスト）
-#   2. 各章スナップショットテスト（rustc で直接ビルド）
-#   3. Scheme テスト（gosh が必要、なければスキップ）
+# What it runs:
+#   1. cargo test (unit tests + integration tests)
+#   2. chapter snapshot tests (built directly with rustc)
+#   3. Scheme tests (need gosh; skipped if it is missing)
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
@@ -18,7 +18,7 @@ echo
 
 TOTAL_PASS=0; TOTAL_FAIL=0
 
-# Part 1+2: Rust ユニットテスト + 統合テスト
+# Part 1+2: Rust unit tests + integration tests
 echo "--- cargo test ---"
 if (cd "$SCRIPT_DIR" && cargo test 2>&1); then
     TOTAL_PASS=$((TOTAL_PASS + 1))
@@ -27,7 +27,7 @@ else
 fi
 echo
 
-# Part 3: 各章スナップショットテスト
+# Part 3: chapter snapshot tests
 if bash "$SCRIPT_DIR/tests/chapters/run_chapter_tests.sh"; then
     TOTAL_PASS=$((TOTAL_PASS + 1))
 else
@@ -35,7 +35,7 @@ else
 fi
 echo
 
-# Part 4: Scheme テスト
+# Part 4: Scheme tests
 if bash "$SCRIPT_DIR/tests/scheme/run_scheme_tests.sh"; then
     TOTAL_PASS=$((TOTAL_PASS + 1))
 else

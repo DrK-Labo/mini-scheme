@@ -1,5 +1,5 @@
 #!/bin/bash
-# test_ch07.sh — Chapter 7: 構文解析 のテスト
+# test_ch07.sh — tests for Chapter 7: Parsing
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJ_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"

@@ -1,10 +1,10 @@
-// src/main.rs — Chapter 9: クロージャ
+// src/main.rs — Chapter 9: Closures
 
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 
-// ===== トークン（Chapter 6） =====
+// ===== Tokens (Chapter 6) =====
 
 #[derive(Debug, Clone, PartialEq)]
 enum Token {
@@ -18,7 +18,7 @@ enum Token {
     Dot,
 }
 
-// ===== S式 / 値（Chapter 7-8） =====
+// ===== S-expressions / Values (Chapter 7-8) =====
 
 #[derive(Debug, Clone)]
 enum Value {
@@ -95,7 +95,7 @@ impl std::fmt::Display for Value {
     }
 }
 
-// ===== 環境（Chapter 8） =====
+// ===== Environment (Chapter 8) =====
 
 #[derive(Debug, Clone)]
 struct Env {
@@ -135,7 +135,7 @@ impl Env {
     }
 }
 
-// ===== 字句解析（Chapter 6） =====
+// ===== Lexical Analysis (Chapter 6) =====
 
 fn tokenize(input: &str) -> Result<Vec<Token>, String> {
     let mut tokens = Vec::new();
@@ -260,7 +260,7 @@ fn is_digit_ahead(chars: &mut std::iter::Peekable<std::str::Chars>) -> bool {
     }
 }
 
-// ===== 構文解析（Chapter 7） =====
+// ===== Parsing (Chapter 7) =====
 
 fn parse(tokens: &[Token]) -> Result<(Value, &[Token]), String> {
     if tokens.is_empty() {
@@ -351,7 +351,7 @@ fn parse_all(tokens: &[Token]) -> Result<Vec<Value>, String> {
     Ok(results)
 }
 
-// ===== 評価器（Chapter 8） =====
+// ===== Evaluator (Chapter 8) =====
 
 fn eval(expr: &Value, env: &EnvRef) -> Result<Value, String> {
     match expr {

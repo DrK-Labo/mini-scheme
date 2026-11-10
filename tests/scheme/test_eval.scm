@@ -1,9 +1,9 @@
-;;;; test_eval.scm — mini-eval.scm のテストスイート
+;;;; test_eval.scm — test suite for mini-eval.scm
 ;;;;
-;;;; 使い方:
+;;;; Usage:
 ;;;;   gosh -l mini-eval.scm tests/scheme/test_eval.scm
 ;;;;
-;;;; mini-eval.scm を load した状態で実行し、my-eval を直接テストする。
+;;;; Runs with mini-eval.scm loaded and tests my-eval directly.
 
 (define *test-pass* 0)
 (define *test-fail* 0)
@@ -25,20 +25,20 @@
 (define (test-error desc thunk)
   (guard (e (#t (set! *test-pass* (+ *test-pass* 1))))
     (thunk)
-    ;; thunk が正常終了した場合 → 期待に反してエラーなし
+    ;; thunk returned normally → no error, contrary to expectation
     (set! *test-fail* (+ *test-fail* 1))
     (display "  FAIL: ")
     (display desc)
     (display " (expected error, but succeeded)")
     (newline)))
 
-;;; グローバル環境を初期化
+;;; Initialize the global environment
 (set! *global-env* (make-global-env))
 
 (display "=== mini-eval.scm Tests ===")
 (newline)
 
-;; --- 自己評価 ---
+;; --- Self-evaluating ---
 (test-equal "number"   42     (my-eval 42 '()))
 (test-equal "string"   "hi"   (my-eval "hi" '()))
 (test-equal "bool #t"  #t     (my-eval #t '()))
@@ -47,13 +47,13 @@
 ;; --- quote ---
 (test-equal "quote"    '(1 2) (my-eval '(quote (1 2)) '()))
 
-;; --- 算術 ---
+;; --- Arithmetic ---
 (test-equal "add"      6      (my-eval '(+ 1 2 3) '()))
 (test-equal "sub"      7      (my-eval '(- 10 3) '()))
 (test-equal "mul"      24     (my-eval '(* 2 3 4) '()))
 (test-equal "div"      5      (my-eval '(/ 10 2) '()))
 
-;; --- 比較 ---
+;; --- Comparison ---
 (test-equal "eq true"  #t     (my-eval '(= 3 3) '()))
 (test-equal "eq false" #f     (my-eval '(= 3 4) '()))
 (test-equal "lt"       #t     (my-eval '(< 1 2) '()))
@@ -80,26 +80,26 @@
 (test-equal "begin" 3
   (my-eval '(begin 1 2 3) '()))
 
-;; --- クロージャ ---
+;; --- Closures ---
 (set! *global-env* (make-global-env))
 (my-eval '(def (make-adder n) (lambda (x) (+ n x))) '())
 (my-eval '(def add5 (make-adder 5)) '())
 (test-equal "closure" 15 (my-eval '(add5 10) '()))
 
-;; --- 再帰 ---
+;; --- Recursion ---
 (set! *global-env* (make-global-env))
 (my-eval '(def (factorial n) (if (= n 0) 1 (* n (factorial (- n 1))))) '())
 (test-equal "factorial" 3628800 (my-eval '(factorial 10) '()))
 
-;; --- リスト操作 ---
+;; --- List operations ---
 (test-equal "car"  1      (my-eval '(car '(1 2 3)) '()))
 (test-equal "cdr"  '(2 3) (my-eval '(cdr '(1 2 3)) '()))
 (test-equal "cons" '(0 1) (my-eval '(cons 0 '(1)) '()))
 
-;; --- エラー ---
+;; --- Errors ---
 (test-error "undefined var" (lambda () (my-eval 'xyz '())))
 
-;; --- 結果表示 ---
+;; --- Results ---
 (newline)
 (display "  ")
 (display *test-pass*)

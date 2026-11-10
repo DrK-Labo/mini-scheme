@@ -1,5 +1,5 @@
 #!/bin/bash
-# test_ch09.sh — Chapter 9: 関数とクロージャ のテスト
+# test_ch09.sh — tests for Chapter 9: Functions and Closures
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJ_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"

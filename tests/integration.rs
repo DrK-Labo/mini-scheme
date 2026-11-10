@@ -1,13 +1,11 @@
-// tests/integration.rs — 完成版バイナリの統合テスト
-//
-// cargo test --test integration で実行
+// tests/integration.rs
 
 use std::io::Write;
 use std::process::{Command, Stdio};
 
-/// バイナリにstdinを送り、stdoutを返すヘルパー
+/// Helper that sends stdin to the binary and returns stdout
 fn run_repl(input: &str) -> String {
-    // cargo test が配置するバイナリのパスを環境変数から取得
+    // cargo test supplies the binary's path in this environment variable
     let bin = env!("CARGO_BIN_EXE_mini-scheme");
     let mut child = Command::new(bin)
         .stdin(Stdio::piped())
@@ -24,21 +22,18 @@ fn run_repl(input: &str) -> String {
     String::from_utf8_lossy(&output.stdout).to_string()
 }
 
-/// 出力からプロンプトやバナーを除去し、結果行だけ返す
-///
-/// REPL の出力は "mini> 6" のように prompt + 結果が同一行になる。
-/// prompt 部分を剥がして結果だけを取り出す。
+/// Strip the prompts and banner from the output, returning only the result lines
 fn extract_results(output: &str) -> Vec<String> {
     let mut results = Vec::new();
     for line in output.lines() {
-        // バナー行をスキップ
+        // skip the banner lines
         if line.starts_with("mini-scheme")
             || line.starts_with("Type (exit)")
             || line.is_empty()
         {
             continue;
         }
-        // プロンプトを剥がす
+        // strip the prompts
         let stripped = line
             .replace("mini> ", "")
             .replace("...   ", "");
@@ -67,8 +62,8 @@ fn repl_def_and_call() {
 
 #[test]
 fn repl_nil_is_printed() {
-    // Nil は空リストとして表示する。(cdr '(1)) のような正当な結果を
-    // 握り潰さないため（2026-08-22。それ以前は非表示にしていた）
+    // Nil is printed as the empty list, so that a legitimate result such as
+    // (cdr '(1)) is not swallowed (since 2026-08-22; before that it was hidden)
     let out = run_repl("(begin)\n(+ 1 1)\n(exit)\n");
     let results = extract_results(&out);
     assert_eq!(results, vec!["()", "2"]);
@@ -76,7 +71,7 @@ fn repl_nil_is_printed() {
 
 #[test]
 fn repl_prints_empty_list_results() {
-    // 空リストを返す式の結果が見えること
+    // the result of an expression that returns the empty list must be visible
     let out = run_repl("(cdr '(1))\n(list)\n(exit)\n");
     let results = extract_results(&out);
     assert_eq!(results, vec!["()", "()"]);
@@ -84,7 +79,7 @@ fn repl_prints_empty_list_results() {
 
 #[test]
 fn repl_multiline_input() {
-    // 複数行にわたる入力（括弧が閉じるまで継続）
+    // input spanning several lines (continues until the parens close)
     let out = run_repl("(+ 1\n   2\n   3)\n(exit)\n");
     let results = extract_results(&out);
     assert_eq!(results, vec!["6"]);
@@ -92,7 +87,7 @@ fn repl_multiline_input() {
 
 #[test]
 fn repl_error_recovery() {
-    // エラーが出ても REPL は続行する
+    // the REPL keeps going after an error
     let out = run_repl("(/ 1 0)\n(+ 1 1)\n(exit)\n");
     let results = extract_results(&out);
     assert!(results[0].contains("Error"));
@@ -107,7 +102,7 @@ fn repl_exit() {
 
 #[test]
 fn repl_eof() {
-    // EOF で終了
+    // exit on EOF
     let out = run_repl("");
     assert!(out.contains("Bye!"));
 }

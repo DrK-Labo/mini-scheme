@@ -1,10 +1,10 @@
-// src/main.rs — Chapter 10: 組み込み関数
+// src/main.rs — Chapter 10: Built-In Functions
 
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 
-// ===== トークン（Chapter 6） =====
+// ===== Tokens (Chapter 6) =====
 
 #[derive(Debug, Clone, PartialEq)]
 enum Token {
@@ -18,7 +18,7 @@ enum Token {
     Dot,
 }
 
-// ===== S式 / 値（Chapter 7-8） =====
+// ===== S-expressions / Values (Chapter 7-8) =====
 
 #[derive(Debug, Clone)]
 enum Value {
@@ -95,7 +95,7 @@ impl std::fmt::Display for Value {
     }
 }
 
-// ===== 環境（Chapter 8） =====
+// ===== Environment (Chapter 8) =====
 
 #[derive(Debug, Clone)]
 struct Env {
@@ -135,7 +135,7 @@ impl Env {
     }
 }
 
-// ===== 字句解析（Chapter 6） =====
+// ===== Lexical Analysis (Chapter 6) =====
 
 fn tokenize(input: &str) -> Result<Vec<Token>, String> {
     let mut tokens = Vec::new();
@@ -260,7 +260,7 @@ fn is_digit_ahead(chars: &mut std::iter::Peekable<std::str::Chars>) -> bool {
     }
 }
 
-// ===== 構文解析（Chapter 7） =====
+// ===== Parsing (Chapter 7) =====
 
 fn parse(tokens: &[Token]) -> Result<(Value, &[Token]), String> {
     if tokens.is_empty() {
@@ -351,7 +351,7 @@ fn parse_all(tokens: &[Token]) -> Result<Vec<Value>, String> {
     Ok(results)
 }
 
-// ===== 評価器（Chapter 8） =====
+// ===== Evaluator (Chapter 8) =====
 
 fn eval(expr: &Value, env: &EnvRef) -> Result<Value, String> {
     match expr {
@@ -614,6 +614,7 @@ fn apply_func(func: &Value, args: &[Value]) -> Result<Value, String> {
 
 fn apply_builtin(name: &str, args: &[Value]) -> Result<Value, String> {
     match name {
+        // Arithmetic (third argument is the identity element: 0 for +, 1 for *)
         "+" => numeric_op(args, |a, b| a + b, 0.0),
         "-" => {
             if args.is_empty() {
@@ -626,7 +627,7 @@ fn apply_builtin(name: &str, args: &[Value]) -> Result<Value, String> {
             if args.is_empty() {
                 return Err("/ requires at least 1 argument".to_string());
             }
-            // (/ x) は 1 / x と解釈されるので、引数が1つならそれ自身が除数
+            // (/ x) means 1 / x, so a lone argument is the divisor
             let divisors = if args.len() == 1 { args } else { &args[1..] };
             for arg in divisors {
                 if let Value::Number(n) = arg {
@@ -637,11 +638,15 @@ fn apply_builtin(name: &str, args: &[Value]) -> Result<Value, String> {
             }
             numeric_op(args, |a, b| a / b, 1.0)
         }
+
+        // Comparison operations
         "=" => compare_op(args, |a, b| a == b),
         "<" => compare_op(args, |a, b| a < b),
         ">" => compare_op(args, |a, b| a > b),
         "<=" => compare_op(args, |a, b| a <= b),
         ">=" => compare_op(args, |a, b| a >= b),
+
+        // List operations
         "car" => builtin_car(args),
         "cdr" => builtin_cdr(args),
         "cons" => builtin_cons(args),
@@ -650,6 +655,8 @@ fn apply_builtin(name: &str, args: &[Value]) -> Result<Value, String> {
         } else {
             Value::List(args.to_vec())
         }),
+
+        // Type predicates (all take exactly 1 argument)
         "null?" | "pair?" | "list?" | "number?" | "string?"
         | "boolean?" | "symbol?" | "procedure?" => {
             if args.len() != 1 {
@@ -674,14 +681,20 @@ fn apply_builtin(name: &str, args: &[Value]) -> Result<Value, String> {
             };
             Ok(Value::Bool(result))
         }
+
+        // Equivalence
         "eq?" => builtin_eq(args),
         "equal?" => builtin_equal(args),
+
+        // Logical operations
         "not" => {
             if args.len() != 1 {
                 return Err("not requires exactly 1 argument".to_string());
             }
             Ok(Value::Bool(!is_truthy(&args[0])))
         }
+
+        // I/O
         "display" => {
             if args.len() != 1 {
                 return Err("display requires exactly 1 argument".to_string());
@@ -696,6 +709,7 @@ fn apply_builtin(name: &str, args: &[Value]) -> Result<Value, String> {
             println!();
             Ok(Value::Nil)
         }
+
         _ => Err(format!("Unknown builtin function: {}", name)),
     }
 }
@@ -791,6 +805,8 @@ fn builtin_cons(args: &[Value]) -> Result<Value, String> {
     }
 }
 
+/// eq? compares atoms only: two equal lists are never eq?
+/// equal? walks the structure instead.
 fn builtin_eq(args: &[Value]) -> Result<Value, String> {
     if args.len() != 2 {
         return Err("eq? requires exactly 2 arguments".to_string());

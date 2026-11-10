@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use std::io::{self, Write};
 use std::rc::Rc;
 
-// ===== トークン（Chapter 6） =====
+// ===== Tokens (Chapter 6) =====
 
 #[derive(Debug, Clone, PartialEq)]
 enum Token {
@@ -19,7 +19,7 @@ enum Token {
     Dot,
 }
 
-// ===== S式 / 値（Chapter 7-8） =====
+// ===== S-expressions / Values (Chapter 7-8) =====
 
 #[derive(Debug, Clone)]
 enum Value {
@@ -96,7 +96,7 @@ impl std::fmt::Display for Value {
     }
 }
 
-// ===== 環境（Chapter 8） =====
+// ===== Environment (Chapter 8) =====
 
 #[derive(Debug, Clone)]
 struct Env {
@@ -136,7 +136,7 @@ impl Env {
     }
 }
 
-// ===== 字句解析（Chapter 6） =====
+// ===== Lexical Analysis (Chapter 6) =====
 
 fn tokenize(input: &str) -> Result<Vec<Token>, String> {
     let mut tokens = Vec::new();
@@ -252,6 +252,7 @@ where
     s
 }
 
+/// Looks one character ahead: is this `-` subtraction, or the sign of -7?
 fn is_digit_ahead(chars: &mut std::iter::Peekable<std::str::Chars>) -> bool {
     let mut clone = chars.clone();
     clone.next();
@@ -261,7 +262,7 @@ fn is_digit_ahead(chars: &mut std::iter::Peekable<std::str::Chars>) -> bool {
     }
 }
 
-// ===== 構文解析（Chapter 7） =====
+// ===== Parsing (Chapter 7) =====
 
 fn parse(tokens: &[Token]) -> Result<(Value, &[Token]), String> {
     if tokens.is_empty() {
@@ -285,14 +286,14 @@ fn parse(tokens: &[Token]) -> Result<(Value, &[Token]), String> {
                     if list.is_empty() {
                         return Err("Unexpected '.' at start of list".to_string());
                     }
-                    rest = &rest[1..]; // ドットを消費
+                    rest = &rest[1..]; // consume dot
                     let (tail, remaining) = parse(rest)?;
                     rest = remaining;
                     if rest.is_empty() || rest[0] != Token::RParen {
                         return Err("Expected ')' after dotted pair tail".to_string());
                     }
-                    rest = &rest[1..]; // ')' を消費
-                    // 正規化
+                    rest = &rest[1..]; // consume ')'
+                    // normalize: (1 . (2 3)) is just (1 2 3)
                     return match tail {
                         Value::Nil => Ok((Value::List(list), rest)),
                         Value::List(mut elems) => {
@@ -352,7 +353,7 @@ fn parse_all(tokens: &[Token]) -> Result<Vec<Value>, String> {
     Ok(results)
 }
 
-// ===== 評価器（Chapter 8-10） =====
+// ===== Evaluator (Chapter 8-10) =====
 
 fn eval(expr: &Value, env: &EnvRef) -> Result<Value, String> {
     match expr {
@@ -457,6 +458,7 @@ fn eval_lambda(elems: &[Value], env: &EnvRef) -> Result<Value, String> {
     if elems.len() < 3 {
         return Err("lambda requires parameters and body".to_string());
     }
+    // collect() into a Result stops at the first non-symbol and returns its Err; otherwise it yields every name
     let params: Result<Vec<String>, String> = match &elems[1] {
         Value::List(p) => p
             .iter()
@@ -483,6 +485,8 @@ fn eval_begin(elems: &[Value], env: &EnvRef) -> Result<Value, String> {
     Ok(result)
 }
 
+/// Like eval_begin, but for bodies that have no `begin` keyword to skip:
+/// the body of a matching cond clause, or of a let, arrives as a bare slice.
 fn eval_begin_slice(exprs: &[Value], env: &EnvRef) -> Result<Value, String> {
     let mut result = Value::Nil;
     for expr in exprs {
@@ -518,6 +522,8 @@ fn set_in_env(name: &str, val: Value, env: &EnvRef) -> Result<(), String> {
     }
 }
 
+/// A subset of standard cond: every clause needs a test and a body.
+/// Test-only clauses and `=>` are not supported; no match yields Nil.
 fn eval_cond(elems: &[Value], env: &EnvRef) -> Result<Value, String> {
     for clause in &elems[1..] {
         match clause {
@@ -613,7 +619,7 @@ fn apply_func(func: &Value, args: &[Value]) -> Result<Value, String> {
     }
 }
 
-// ===== 組み込み関数（Chapter 10） =====
+// ===== Built-in Functions (Chapter 10) =====
 
 fn apply_builtin(name: &str, args: &[Value]) -> Result<Value, String> {
     match name {
@@ -629,7 +635,7 @@ fn apply_builtin(name: &str, args: &[Value]) -> Result<Value, String> {
             if args.is_empty() {
                 return Err("/ requires at least 1 argument".to_string());
             }
-            // (/ x) は 1 / x と解釈されるので、引数が1つならそれ自身が除数
+            // (/ x) means 1 / x, so a lone argument is the divisor
             let divisors = if args.len() == 1 { args } else { &args[1..] };
             for arg in divisors {
                 if let Value::Number(n) = arg {
@@ -794,6 +800,8 @@ fn builtin_cons(args: &[Value]) -> Result<Value, String> {
     }
 }
 
+/// eq? compares atoms only: two equal lists are never eq?
+/// equal? walks the structure instead.
 fn builtin_eq(args: &[Value]) -> Result<Value, String> {
     if args.len() != 2 {
         return Err("eq? requires exactly 2 arguments".to_string());
@@ -815,7 +823,7 @@ fn builtin_equal(args: &[Value]) -> Result<Value, String> {
     Ok(Value::Bool(args[0] == args[1]))
 }
 
-// ===== グローバル環境 =====
+// ===== Global Environment =====
 
 fn make_global_env() -> EnvRef {
     let env = Env::new();
@@ -835,7 +843,7 @@ fn make_global_env() -> EnvRef {
     env
 }
 
-// ===== REPL（Chapter 11） =====
+// ===== REPL (Chapter 11) =====
 
 fn run(input: &str, env: &EnvRef) -> Result<Value, String> {
     let tokens = tokenize(input)?;
@@ -848,9 +856,9 @@ fn run(input: &str, env: &EnvRef) -> Result<Value, String> {
     Ok(result)
 }
 
-/// 入力が完結しているか、トークンレベルで判定する。
-/// tokenize が成功し、カッコの深さが 0 以下なら入力完了。
-/// tokenize が失敗した場合（未閉じ文字列など）は未完了と見なす。
+/// Decide whether the input is complete, at the token level.
+/// Complete when tokenize succeeds and the paren depth is zero or less.
+/// A tokenize failure (an unterminated string, say) counts as incomplete.
 fn is_ready(input: &str) -> bool {
     match tokenize(input) {
         Ok(tokens) => {
@@ -861,11 +869,11 @@ fn is_ready(input: &str) -> bool {
             }).sum();
             depth <= 0
         }
-        Err(_) => false, // 未閉じ文字列など → 継続入力を待つ
+        Err(_) => false, // unclosed string, etc. — wait for more input
     }
 }
 
-/// 式を評価して文字列を返すヘルパー（テスト・外部から利用）
+/// Evaluate an expression and return it as a string (used by the tests).
 #[allow(dead_code)]
 fn eval_to_string(input: &str) -> Result<String, String> {
     let env = make_global_env();
@@ -946,19 +954,19 @@ fn main() {
     }
 }
 
-// ===== テスト =====
+// ===== Tests =====
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    // ヘルパー: 入力を評価して Value を返す
+    /// evaluate input and return a Value
     fn eval_input(input: &str) -> Result<Value, String> {
         let env = make_global_env();
         run(input, &env)
     }
 
-    // ヘルパー: 複数式を同一環境で評価し最後の値を返す
+    /// evaluate several expressions in one environment and return the last value
     fn eval_program(inputs: &[&str]) -> Result<Value, String> {
         let env = make_global_env();
         let mut result = Value::Nil;
@@ -968,12 +976,12 @@ mod tests {
         Ok(result)
     }
 
-    // ヘルパー: 評価結果の Display 文字列を返す
+    /// return the Display string of the evaluation result
     fn eval_str(input: &str) -> String {
         format!("{}", eval_input(input).unwrap())
     }
 
-    // ヘルパー: 複数式の最終結果の Display 文字列を返す
+    /// return the Display string of the last result of several expressions
     fn eval_program_str(inputs: &[&str]) -> String {
         format!("{}", eval_program(inputs).unwrap())
     }
@@ -1039,7 +1047,7 @@ mod tests {
 
     #[test]
     fn tokenize_unicode_whitespace() {
-        // 全角スペース・NBSP・垂直タブ・改ページも空白として読み飛ばす
+        // Ideographic space, NBSP, vertical tab and form feed are skipped as whitespace too
         for ws in ['\u{3000}', '\u{00A0}', '\u{000B}', '\u{000C}'] {
             let tokens = tokenize(&format!("(+ 1{}2)", ws)).unwrap();
             assert_eq!(
@@ -1131,7 +1139,7 @@ mod tests {
         assert!(parse(&tokens).is_err());
     }
 
-    // ===== Evaluator: 自己評価 =====
+    // ===== Evaluator: self-evaluating =====
 
     #[test]
     fn eval_number() {
@@ -1149,7 +1157,7 @@ mod tests {
         assert_eq!(eval_str("#f"), "#f");
     }
 
-    // ===== Evaluator: 算術 =====
+    // ===== Evaluator: arithmetic =====
 
     #[test]
     fn eval_add() {
@@ -1196,13 +1204,13 @@ mod tests {
         assert_eq!(eval_str("(/ 2)"), "0.5");
     }
 
-    // 単項の (/ 0) は 1 / 0 なのでゼロ除算
+    // Unary (/ 0) means 1 / 0, so it is a division by zero
     #[test]
     fn eval_div_unary_by_zero() {
         assert!(eval_input("(/ 0)").is_err());
     }
 
-    // ===== Evaluator: 比較 =====
+    // ===== Evaluator: comparison =====
 
     #[test]
     fn eval_eq_numbers() {
@@ -1276,7 +1284,7 @@ mod tests {
         );
     }
 
-    // 名前のない (def) はエラーであってパニックではない
+    // A (def) with no name is an error, not a panic
     #[test]
     fn eval_def_without_name() {
         assert!(eval_input("(def)").is_err());
@@ -1294,7 +1302,7 @@ mod tests {
         assert_eq!(eval_str("((lambda () 42))"), "42");
     }
 
-    // ===== Evaluator: クロージャ =====
+    // ===== Evaluator: closures =====
 
     #[test]
     fn eval_closure_lexical_scope() {
@@ -1363,7 +1371,7 @@ mod tests {
         assert_eq!(eval_str("(let () 42)"), "42");
     }
 
-    // 束縛が空でも新しいスコープを作る。内側の def は外へ漏れない
+    // An empty binding list still opens a new scope; an inner def does not leak out
     #[test]
     fn eval_let_empty_bindings_scope() {
         assert_eq!(
@@ -1428,7 +1436,7 @@ mod tests {
         assert_eq!(eval_str("(list)"), "()");
     }
 
-    // ===== Builtin: 型述語 =====
+    // ===== Builtin: type predicates =====
 
     #[test]
     fn eval_type_predicates() {
@@ -1469,7 +1477,7 @@ mod tests {
         assert_eq!(eval_str("(not 0)"), "#f"); // 0 is truthy in Scheme
     }
 
-    // ===== 再帰 =====
+    // ===== Recursion =====
 
     #[test]
     fn eval_factorial() {
@@ -1504,7 +1512,7 @@ mod tests {
         );
     }
 
-    // ===== エラー =====
+    // ===== Errors =====
 
     #[test]
     fn error_undefined_variable() {
@@ -1550,7 +1558,7 @@ mod tests {
 
     #[test]
     fn ready_extra_rparen() {
-        // 閉じカッコ過多 → 入力完了としてパーサーに回す（エラーになる）
+        // Too many closing parens: counts as complete and goes to the parser (which reports the error)
         assert!(is_ready("(+ 1 2))"));
     }
 
@@ -1593,7 +1601,7 @@ mod tests {
         assert_eq!(eval_to_string("(+ 2 3)").unwrap(), "5");
     }
 
-    // ===== ドット対（DottedList） =====
+    // ===== Dotted pairs (DottedList) =====
 
     // --- Tokenizer ---
 
@@ -1627,19 +1635,19 @@ mod tests {
 
     #[test]
     fn parse_dotted_normalize_nil() {
-        // (1 . ()) は (1) と等価
+        // (1 . ()) is equivalent to (1)
         assert_eq!(eval_str("'(1 . ())"), "(1)");
     }
 
     #[test]
     fn parse_dotted_normalize_list() {
-        // (1 . (2 3)) は (1 2 3) と等価
+        // (1 . (2 3)) is equivalent to (1 2 3)
         assert_eq!(eval_str("'(1 . (2 3))"), "(1 2 3)");
     }
 
     #[test]
     fn parse_dotted_normalize_nested() {
-        // (1 . (2 . 3)) は (1 2 . 3) と等価
+        // (1 . (2 . 3)) is equivalent to (1 2 . 3)
         assert_eq!(eval_str("'(1 . (2 . 3))"), "(1 2 . 3)");
     }
 
@@ -1745,11 +1753,11 @@ mod tests {
 
     #[test]
     fn eval_equal_normalized() {
-        // パーサーの正規化により同一
+        // Identical once the parser normalizes them
         assert_eq!(eval_str("(equal? '(1 2 3) '(1 . (2 3)))"), "#t");
     }
 
-    // --- DottedList 深層テスト ---
+    // --- DottedList: deeper cases ---
 
     #[test]
     fn eval_cons_chain_dotted() {
@@ -1766,7 +1774,7 @@ mod tests {
         assert_eq!(eval_str("(cdr (cdr '(1 2 3 . 4)))"), "(3 . 4)");
     }
 
-    // --- エラーケース ---
+    // --- Error cases ---
 
     #[test]
     fn error_car_empty_list() {
@@ -1783,7 +1791,7 @@ mod tests {
         assert!(eval_input("(car \"hello\")").is_err());
     }
 
-    // --- equal? 複合テスト ---
+    // --- equal?: compound cases ---
 
     #[test]
     fn eval_equal_nested_lists() {
@@ -1796,7 +1804,7 @@ mod tests {
         assert_eq!(eval_str("(equal? '(1 . 2) '(1 2))"), "#f");
     }
 
-    // --- 型述語の組み合わせ ---
+    // --- Type predicates in combination ---
 
     #[test]
     fn eval_pair_and_list_pred_cons() {
@@ -1809,7 +1817,7 @@ mod tests {
         assert_eq!(eval_str("(null? (cons 1 2))"), "#f");
     }
 
-    // --- 環境・スコープ ---
+    // --- Environment and scope ---
 
     #[test]
     fn eval_let_shadowing() {
@@ -1829,7 +1837,7 @@ mod tests {
         );
     }
 
-    // --- quote エッジケース ---
+    // --- quote: edge cases ---
 
     #[test]
     fn eval_quote_special_form() {
