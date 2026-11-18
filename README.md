@@ -4,7 +4,7 @@
 
 > A small Scheme interpreter for learning, written in about 1,000 lines of Rust
 
-This is the companion code for the book *Crafting a Scheme Interpreter in Rust*. It builds a Scheme interpreter step by step — lexical analysis, parsing, the evaluator, closures, lexical scope, and the REPL. The code stays small, but it is expressive enough to run and try out the core topics of language implementation: a metacircular evaluator, the Y combinator, and tail-call optimization.
+This is the companion code for the book *Crafting a Scheme Interpreter in Rust*. It builds a Scheme interpreter step by step — lexical analysis, parsing, the evaluator, closures, lexical scope, and the REPL. The code stays small, but it is expressive enough to run the Y combinator, and the repository includes the metacircular evaluator from Chapter 4 (run on Gauche). Tail-call optimization is left as an exercise (Chapter 13).
 
 This `en` branch carries the same code as `main`, with English comments. `main` carries Japanese comments for the Japanese edition.
 
