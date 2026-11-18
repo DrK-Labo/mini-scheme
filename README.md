@@ -1,4 +1,4 @@
-**日本語** | [English](https://github.com/DrK-Labo/mini-scheme/tree/v1.1-en)
+**日本語** | [English](https://github.com/DrK-Labo/mini-scheme/tree/en)
 
 # mini-scheme
 
