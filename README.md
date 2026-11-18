@@ -80,7 +80,7 @@ This repository is the companion code for the book **_Crafting a Scheme Interpre
 
 | | |
 |---|---|
-| English edition | *Crafting a Scheme Interpreter in Rust* — code: the `v1.1-en` tag on this `en` branch |
+| English edition | [Amazon Kindle](https://www.amazon.com/dp/B0HS51CVQG) — code: the `v1.1-en` tag on this `en` branch |
 | Japanese edition | [Amazon Kindle (Japan)](https://www.amazon.co.jp/dp/B0GX2VM5W5) — code: the `main` branch (`v1.0` tag for the first edition) |
 | Author | Dr.K Laboratory |
 | X | [@DrKLaboratory](https://x.com/DrKLaboratory) |
