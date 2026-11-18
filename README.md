@@ -78,6 +78,7 @@ Bye!
 | | |
 |---|---|
 | 書籍 | [Amazon Kindle で見る](https://www.amazon.co.jp/dp/B0GX2VM5W5) |
+| 英語版 | [Crafting a Scheme Interpreter in Rust（Amazon Kindle）](https://www.amazon.com/dp/B0HS51CVQG) — コードは `en` ブランチ（タグ `v1.1-en`） |
 | 配信 | Kindle Unlimited 対象 |
 | 著者 | Dr.K Laboratory |
 | X | [@DrKLaboratory](https://x.com/DrKLaboratory) |
