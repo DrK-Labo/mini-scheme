@@ -139,7 +139,7 @@ cargo run
 To run the Scheme interpreter written in Scheme, you need [Gauche](https://practical-scheme.net/gauche/).
 
 ```bash
-gosh -l mini-eval.scm
+gosh -l ./mini-eval.scm
 ```
 
 ```
