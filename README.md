@@ -137,7 +137,7 @@ cargo run
 Scheme で書かれた Scheme インタプリタを動かすには、[Gauche](https://practical-scheme.net/gauche/) が必要です。
 
 ```bash
-gosh -l mini-eval.scm
+gosh -l ./mini-eval.scm
 ```
 
 ```
