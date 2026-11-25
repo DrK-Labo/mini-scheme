@@ -1,7 +1,7 @@
 ;;;; test_eval.scm — test suite for mini-eval.scm
 ;;;;
 ;;;; Usage:
-;;;;   gosh -l mini-eval.scm tests/scheme/test_eval.scm
+;;;;   gosh -l ./mini-eval.scm tests/scheme/test_eval.scm
 ;;;;
 ;;;; Runs with mini-eval.scm loaded and tests my-eval directly.
 
