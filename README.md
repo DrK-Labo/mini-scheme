@@ -8,6 +8,16 @@ This is the companion code for the book *Crafting a Scheme Interpreter in Rust*.
 
 This `en` branch carries the same code as `main`, with English comments. `main` carries Japanese comments for the Japanese edition.
 
+## Errata for the book
+
+**Section 4.5, "Running It"** (Version 1.1): the command `gosh -l mini-eval.scm` fails with a "cannot find" error. Put `./` before the file name:
+
+```bash
+gosh -l ./mini-eval.scm
+```
+
+Gauche looks for a file whose name does not start with `./` in its library directories, not in the current directory.
+
 ## Try it
 
 ```bash
