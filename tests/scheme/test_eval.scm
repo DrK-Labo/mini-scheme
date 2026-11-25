@@ -1,7 +1,7 @@
 ;;;; test_eval.scm — mini-eval.scm のテストスイート
 ;;;;
 ;;;; 使い方:
-;;;;   gosh -l mini-eval.scm tests/scheme/test_eval.scm
+;;;;   gosh -l ./mini-eval.scm tests/scheme/test_eval.scm
 ;;;;
 ;;;; mini-eval.scm を load した状態で実行し、my-eval を直接テストする。
 
